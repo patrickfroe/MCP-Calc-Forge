@@ -12,7 +12,7 @@ from typing import Any
 
 from fastmcp import FastMCP
 
-from calcforge import algebra, arithmetic, geometry, stats
+from calcforge import algebra, arithmetic, calculators, geometry, stats
 from calcforge import utils
 
 mcp = FastMCP("MCP CalcForge")
@@ -190,6 +190,42 @@ def to_binary(n: int) -> str:
 def from_binary(bin_str: str) -> int:
     """Convert a binary string to an integer."""
     return utils.from_binary(bin_str)
+
+
+@mcp.tool()
+def list_calculators(category: str | None = None) -> list[dict[str, Any]]:
+    """List available calculators, optionally filtered by category."""
+    return calculators.list_calculators(category)
+
+
+@mcp.tool()
+def get_calculator_schema(calculator_id: str) -> dict[str, Any]:
+    """Get the input schema for a specific calculator."""
+    return calculators.get_calculator_schema(calculator_id)
+
+
+@mcp.tool()
+def calculate(calculator_id: str, inputs: dict[str, Any]) -> dict[str, Any]:
+    """Run a calculation and return result + prefilled URL."""
+    return calculators.calculate(calculator_id, inputs)
+
+
+@mcp.tool()
+def generate_prefilled_url(calculator_id: str, inputs: dict[str, Any]) -> str:
+    """Generate a prefilled URL without running calculation."""
+    return calculators.generate_prefilled_url(calculator_id, inputs)
+
+
+@mcp.tool()
+def calculate_cas(expressions: list[str], precision: int = 15) -> dict[str, Any]:
+    """Evaluate headless CAS expressions in MCP-only numeric mode."""
+    return calculators.calculate_cas(expressions, precision=precision)
+
+
+@mcp.tool()
+def calculate_cas_headless(expressions: list[str], precision: int = 15) -> dict[str, Any]:
+    """Alias of ``calculate_cas`` for explicit headless naming."""
+    return calculators.calculate_cas_headless(expressions, precision=precision)
 
 
 if __name__ == "__main__":
