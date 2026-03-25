@@ -15,6 +15,12 @@ def test_list_calculators_with_category_filter() -> None:
     assert all(entry["slug"] for entry in arithmetic_only)
 
 
+def test_all_simple_tools_are_discoverable_in_registry() -> None:
+    slugs = {entry["slug"] for entry in calculators.list_calculators()}
+
+    assert {"add", "to_fraction", "circle_area", "solve_linear_system", "to_binary"}.issubset(slugs)
+
+
 def test_calculate_returns_result_and_prefilled_url() -> None:
     payload = calculators.calculate("add", {"a": 2, "b": 5})
 
@@ -25,26 +31,18 @@ def test_calculate_returns_result_and_prefilled_url() -> None:
 
 
 def test_calculate_validation_errors() -> None:
-    try:
-        calculators.calculate("unknown", {})
-    except ValueError as error:
-        assert str(error) == "Unknown calculator slug: unknown"
-    else:
-        raise AssertionError("Expected ValueError for unknown slug")
+    unknown_slug = calculators.calculate("unknown", {})
+    assert unknown_slug["error"]["code"] == "unknown_slug"
 
-    try:
-        calculators.calculate("add", {"a": 1})
-    except ValueError as error:
-        assert str(error) == "Missing required input: b"
-    else:
-        raise AssertionError("Expected ValueError for missing required input")
+    missing_required = calculators.calculate("add", {"a": 1})
+    assert missing_required["error"]["code"] == "missing_required_input"
+    assert missing_required["error"]["details"]["field"] == "b"
 
-    try:
-        calculators.calculate("add", {"a": "1", "b": 2})
-    except ValueError as error:
-        assert str(error) == "Invalid input type for 'a': expected number"
-    else:
-        raise AssertionError("Expected ValueError for invalid input type")
+    invalid_type = calculators.calculate("add", {"a": "1", "b": 2})
+    assert invalid_type["error"]["code"] == "invalid_input_value"
+
+    invalid_value = calculators.calculate("divide", {"a": 4, "b": 0})
+    assert invalid_value["error"]["code"] == "invalid_input_value"
 
 
 def test_calculate_cas_numeric_and_handoff() -> None:
