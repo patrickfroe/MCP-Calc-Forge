@@ -7,6 +7,7 @@ an HTTP JSON-RPC endpoint.
 from __future__ import annotations
 
 from fractions import Fraction
+import os
 from typing import Any
 
 from fastmcp import FastMCP
@@ -192,4 +193,5 @@ def from_binary(bin_str: str) -> int:
 
 
 if __name__ == "__main__":
-    mcp.run(transport="http", host="127.0.0.1", port=8080)
+    port = int(os.getenv("FASTMCP_PORT", "8080"))
+    mcp.run(transport="http", host="127.0.0.1", port=port)
