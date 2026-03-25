@@ -4,8 +4,7 @@ MCP CalcForge is a lightweight **Model Context Protocol (MCP)** math server buil
 
 The project is intentionally small and modular:
 - `server.py` defines the MCP server and registers all tools.
-- `calcforge/` contains domain-specific math modules.
-- `calcwerk/` contains extra utility helpers.
+- `calcforge/` contains domain-specific and utility math modules.
 
 ## Features
 
@@ -127,7 +126,7 @@ The current codebase favors:
 - `calcforge/algebra.py` – symbolic algebra operations using SymPy
 - `calcforge/geometry.py` – geometric formulas
 - `calcforge/stats.py` – statistics and integer utilities
-- `calcwerk/utils.py` – misc numerical utility functions
+- `calcforge/utils.py` – misc numerical utility functions
 
 ## License
 
