@@ -14,7 +14,7 @@ from fastmcp import FastMCP
 from calcforge import algebra, arithmetic, geometry, stats
 from calcwerk import utils
 
-mcp = FastMCP("MCP CalcForge", port=8080)
+mcp = FastMCP("MCP CalcForge")
 
 
 @mcp.tool()
