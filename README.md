@@ -47,9 +47,13 @@ The project is intentionally small and modular:
 - `to_binary(n)`
 - `from_binary(bin_str)`
 
-### 6) Tool discovery helpers
-- `list_calculators()` returns all calculator tool names.
-- `get_calculator_schema(calculator)` returns a tool's description, parameters, and return type.
+### 6) Calculator orchestration + CAS tools
+- `list_calculators(category=None)`
+- `get_calculator_schema(calculator_id)`
+- `calculate(calculator_id, inputs)`
+- `generate_prefilled_url(calculator_id, inputs)`
+- `calculate_cas(expressions, precision=15)`
+- `calculate_cas_headless(expressions, precision=15)` (alias of `calculate_cas`)
 
 ## Architecture overview
 

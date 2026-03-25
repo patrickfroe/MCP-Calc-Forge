@@ -13,7 +13,7 @@ from typing import Any
 
 from fastmcp import FastMCP
 
-from calcforge import algebra, arithmetic, geometry, stats
+from calcforge import algebra, arithmetic, calculators, geometry, stats
 from calcforge import utils
 
 mcp = FastMCP("MCP CalcForge")
@@ -193,80 +193,40 @@ def from_binary(bin_str: str) -> int:
     return utils.from_binary(bin_str)
 
 
-CALCULATOR_TOOL_NAMES = [
-    "add",
-    "subtract",
-    "multiply",
-    "divide",
-    "percentage_of",
-    "to_fraction",
-    "circle_area",
-    "circle_circumference",
-    "rectangle_area",
-    "rectangle_perimeter",
-    "triangle_area",
-    "sphere_volume",
-    "cylinder_volume",
-    "cone_volume",
-    "pyramid_volume",
-    "solve_quadratic",
-    "solve_linear_system",
-    "factor_polynomial",
-    "find_roots",
-    "mean",
-    "std_dev",
-    "gcd",
-    "lcm",
-    "prime_factors",
-    "log_base",
-    "power",
-    "to_scientific_notation",
-    "to_binary",
-    "from_binary",
-]
-
-
-def _annotation_to_string(annotation: Any) -> str:
-    """Return a stable, readable string for a type annotation."""
-    if annotation is inspect.Signature.empty:
-        return "Any"
-    if isinstance(annotation, type):
-        return annotation.__name__
-    return str(annotation)
+@mcp.tool()
+def list_calculators(category: str | None = None) -> list[dict[str, Any]]:
+    """List available calculators, optionally filtered by category."""
+    return calculators.list_calculators(category)
 
 
 @mcp.tool()
-def list_calculators() -> list[str]:
-    """Return all available calculator tool names."""
-    return CALCULATOR_TOOL_NAMES.copy()
+def get_calculator_schema(calculator_id: str) -> dict[str, Any]:
+    """Get the input schema for a specific calculator."""
+    return calculators.get_calculator_schema(calculator_id)
 
 
 @mcp.tool()
-def get_calculator_schema(calculator: str) -> dict[str, Any]:
-    """Return the schema for a single calculator tool."""
-    if calculator not in CALCULATOR_TOOL_NAMES:
-        raise ValueError(f"Unknown calculator '{calculator}'.")
+def calculate(calculator_id: str, inputs: dict[str, Any]) -> dict[str, Any]:
+    """Run a calculation and return result + prefilled URL."""
+    return calculators.calculate(calculator_id, inputs)
 
-    function = globals()[calculator]
-    signature = inspect.signature(function)
-    parameters = []
 
-    for name, parameter in signature.parameters.items():
-        parameters.append(
-            {
-                "name": name,
-                "type": _annotation_to_string(parameter.annotation),
-                "required": parameter.default is inspect.Signature.empty,
-                "default": None if parameter.default is inspect.Signature.empty else parameter.default,
-            }
-        )
+@mcp.tool()
+def generate_prefilled_url(calculator_id: str, inputs: dict[str, Any]) -> str:
+    """Generate a prefilled URL without running calculation."""
+    return calculators.generate_prefilled_url(calculator_id, inputs)
 
-    return {
-        "name": calculator,
-        "description": (function.__doc__ or "").strip(),
-        "parameters": parameters,
-        "returns": _annotation_to_string(signature.return_annotation),
-    }
+
+@mcp.tool()
+def calculate_cas(expressions: list[str], precision: int = 15) -> dict[str, Any]:
+    """Evaluate headless CAS expressions in MCP-only numeric mode."""
+    return calculators.calculate_cas(expressions, precision=precision)
+
+
+@mcp.tool()
+def calculate_cas_headless(expressions: list[str], precision: int = 15) -> dict[str, Any]:
+    """Alias of ``calculate_cas`` for explicit headless naming."""
+    return calculators.calculate_cas_headless(expressions, precision=precision)
 
 
 if __name__ == "__main__":
