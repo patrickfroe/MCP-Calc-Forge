@@ -85,7 +85,13 @@ python server.py
 By default it runs with:
 - transport: `http`
 - host: `127.0.0.1`
-- port: `8080`
+- port: `8080` (override with `FASTMCP_PORT`)
+
+Example with custom port:
+
+```bash
+FASTMCP_PORT=8081 python server.py
+```
 
 ## How clients use it
 
