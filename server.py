@@ -23,9 +23,9 @@ def list_calculators(category: str | None = None) -> list[dict[str, Any]]:
 
 
 @mcp.tool()
-def _get_calculator_schema(slug: str) -> dict[str, Any]:
+def get_calculator_schema(slug: str) -> dict[str, Any]:
     """Get the input schema for a calculator identified by slug."""
-    return calculators._get_calculator_schema(slug)
+    return calculators.get_calculator_schema(slug)
 
 
 @mcp.tool()

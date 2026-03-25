@@ -12,7 +12,7 @@ def test_list_calculators_returns_empty_list() -> None:
 
 
 def test_schema_lookup_returns_unknown_slug_error() -> None:
-    payload = calculators._get_calculator_schema("add")
+    payload = calculators.get_calculator_schema("add")
 
     assert payload["error"]["code"] == "unknown_slug"
     assert payload["error"]["details"]["slug"] == "add"

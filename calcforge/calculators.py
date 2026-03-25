@@ -23,7 +23,7 @@ def list_calculators(category: str | None = None) -> list[dict[str, Any]]:
     return []
 
 
-def _get_calculator_schema(slug: str) -> dict[str, Any]:
+def get_calculator_schema(slug: str) -> dict[str, Any]:
     """Return a JSON error because calculator schemas are unavailable."""
     return _error_response("unknown_slug", f"Unknown calculator slug: {slug}", {"slug": slug})
 
