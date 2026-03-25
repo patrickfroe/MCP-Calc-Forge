@@ -14,8 +14,8 @@ All calculator discovery now goes through the registry in `calcforge/calculators
 
 - Each registered calculator contains `meta`, `schema`, and `handler`.
 - `form` calculators receive a typed default schema with validation constraints.
-- Interactive tools (`cas`, `rpn`, etc.) are registry-discoverable with session payload schema.
-- `calculate` returns predictable JSON errors for unknown slugs, invalid inputs, and unimplemented handlers.
+- Interactive tools (`cas`, `rpn`, etc.) are registry-discoverable with session payload schema and executable session handlers.
+- `calculate` returns predictable JSON errors for unknown slugs and invalid inputs.
 
 ## Requirements
 
