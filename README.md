@@ -47,6 +47,10 @@ The project is intentionally small and modular:
 - `to_binary(n)`
 - `from_binary(bin_str)`
 
+### 6) Tool discovery helpers
+- `list_calculators()` returns all calculator tool names.
+- `get_calculator_schema(calculator)` returns a tool's description, parameters, and return type.
+
 ## Architecture overview
 
 The server follows a simple delegation pattern:

@@ -7,6 +7,7 @@ an HTTP JSON-RPC endpoint.
 from __future__ import annotations
 
 from fractions import Fraction
+import inspect
 import os
 from typing import Any
 
@@ -190,6 +191,82 @@ def to_binary(n: int) -> str:
 def from_binary(bin_str: str) -> int:
     """Convert a binary string to an integer."""
     return utils.from_binary(bin_str)
+
+
+CALCULATOR_TOOL_NAMES = [
+    "add",
+    "subtract",
+    "multiply",
+    "divide",
+    "percentage_of",
+    "to_fraction",
+    "circle_area",
+    "circle_circumference",
+    "rectangle_area",
+    "rectangle_perimeter",
+    "triangle_area",
+    "sphere_volume",
+    "cylinder_volume",
+    "cone_volume",
+    "pyramid_volume",
+    "solve_quadratic",
+    "solve_linear_system",
+    "factor_polynomial",
+    "find_roots",
+    "mean",
+    "std_dev",
+    "gcd",
+    "lcm",
+    "prime_factors",
+    "log_base",
+    "power",
+    "to_scientific_notation",
+    "to_binary",
+    "from_binary",
+]
+
+
+def _annotation_to_string(annotation: Any) -> str:
+    """Return a stable, readable string for a type annotation."""
+    if annotation is inspect.Signature.empty:
+        return "Any"
+    if isinstance(annotation, type):
+        return annotation.__name__
+    return str(annotation)
+
+
+@mcp.tool()
+def list_calculators() -> list[str]:
+    """Return all available calculator tool names."""
+    return CALCULATOR_TOOL_NAMES.copy()
+
+
+@mcp.tool()
+def get_calculator_schema(calculator: str) -> dict[str, Any]:
+    """Return the schema for a single calculator tool."""
+    if calculator not in CALCULATOR_TOOL_NAMES:
+        raise ValueError(f"Unknown calculator '{calculator}'.")
+
+    function = globals()[calculator]
+    signature = inspect.signature(function)
+    parameters = []
+
+    for name, parameter in signature.parameters.items():
+        parameters.append(
+            {
+                "name": name,
+                "type": _annotation_to_string(parameter.annotation),
+                "required": parameter.default is inspect.Signature.empty,
+                "default": None if parameter.default is inspect.Signature.empty else parameter.default,
+            }
+        )
+
+    return {
+        "name": calculator,
+        "description": (function.__doc__ or "").strip(),
+        "parameters": parameters,
+        "returns": _annotation_to_string(signature.return_annotation),
+    }
 
 
 if __name__ == "__main__":
