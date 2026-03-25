@@ -1,0 +1,4 @@
+fastmcp
+sympy
+numpy
+pytest
