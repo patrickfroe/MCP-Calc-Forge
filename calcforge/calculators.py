@@ -492,7 +492,6 @@ def _contractor_vs_employee_handler(inputs: JSON) -> JSON:
 
 
 def _cas_handler(inputs: JSON) -> JSON:
-    session_id = inputs["session_id"]
     payload = inputs["payload"]
     expr = payload.get("expression") or payload.get("latex")
     if not isinstance(expr, str) or not expr.strip():
@@ -506,14 +505,12 @@ def _cas_handler(inputs: JSON) -> JSON:
     except Exception as exc:  # noqa: BLE001
         return _error_response("evaluation_error", f"Unable to evaluate expression: {exc}")
     return {
-        "session_id": session_id,
         "results": {"expression": expr, "numeric_result": value},
         "warnings": ["CAS mode supports numeric-safe subset, not full symbolic algebra."],
     }
 
 
 def _rpn_handler(inputs: JSON) -> JSON:
-    session_id = inputs["session_id"]
     payload = inputs["payload"]
     tokens = payload.get("tokens", [])
     if not isinstance(tokens, list):
@@ -541,7 +538,7 @@ def _rpn_handler(inputs: JSON) -> JSON:
         else:
             return _error_response("invalid_input", f"unsupported token: {token}")
 
-    return {"session_id": session_id, "results": {"stack": [round(v, 10) for v in stack], "top": stack[-1] if stack else None}, "warnings": []}
+    return {"results": {"stack": [round(v, 10) for v in stack], "top": stack[-1] if stack else None}, "warnings": []}
 
 
 # Source-of-truth calculator metadata from the provided registry seed list.
@@ -594,15 +591,9 @@ SCHEMAS: dict[str, JSON] = {
 def _interactive_schema(name: str, tool_type: str) -> JSON:
     return {
         "type": "object",
-        "title": f"{name} Session Payload",
-        "required": ["session_id", "payload"],
+        "title": f"{name} Payload",
+        "required": ["payload"],
         "properties": {
-            "session_id": {
-                "type": "string",
-                "label": "Session ID",
-                "help": "Client-managed session identifier.",
-                "minLength": 1,
-            },
             "payload": {
                 "type": "object",
                 "label": "Payload",

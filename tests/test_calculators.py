@@ -49,8 +49,8 @@ def test_all_calculators_have_executable_logic() -> None:
         "linear_regression": {"x_values_csv": "1,2,3,4", "y_values_csv": "2,4,6,8"},
         "base_converter": {"decimal_value": 255},
         "contractor_vs_employee": {"employee_base_pay": 120000, "employee_benefits_percent": 20, "employee_payroll_tax_percent": 8, "contractor_hourly_rate": 90, "annual_hours": 1900},
-        "cas": {"session_id": "s1", "payload": {"expression": "2+2*5"}},
-        "rpn": {"session_id": "s2", "payload": {"tokens": [2, 3, "+", 4, "*"]}},
+        "cas": {"payload": {"expression": "2+2*5"}},
+        "rpn": {"payload": {"tokens": [2, 3, "+", 4, "*"]}},
     }
 
     for slug, sample in samples.items():
