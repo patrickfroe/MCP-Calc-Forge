@@ -3,30 +3,31 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from server import CALCULATOR_TOOL_NAMES, get_calculator_schema, list_calculators
+import calcforge.calculators as calculators
 
 
-def test_list_calculators_returns_all_calculator_tools() -> None:
-    assert list_calculators() == CALCULATOR_TOOL_NAMES
-    assert "list_calculators" not in list_calculators()
-    assert "get_calculator_schema" not in list_calculators()
+def test_list_calculators_returns_standardized_metadata() -> None:
+    entries = calculators.list_calculators()
+
+    assert entries
+    assert all(
+        set(entry.keys()) == {"slug", "name", "category", "description", "route", "type"}
+        for entry in entries
+    )
 
 
-def test_get_calculator_schema_for_tool_with_defaults() -> None:
-    schema = get_calculator_schema("to_scientific_notation")
+def test_get_calculator_schema_by_slug() -> None:
+    schema_payload = calculators._get_calculator_schema("add")
 
-    assert schema["name"] == "to_scientific_notation"
-    assert schema["returns"] == "str"
-    assert schema["parameters"] == [
-        {"name": "x", "type": "float", "required": True, "default": None},
-        {"name": "precision", "type": "int", "required": False, "default": 3},
-    ]
+    assert schema_payload["calculator"] == "add"
+    assert "a" in schema_payload["schema"]
+    assert schema_payload["schema"]["a"]["required"] is True
 
 
 def test_get_calculator_schema_raises_for_unknown_tool() -> None:
     try:
-        get_calculator_schema("unknown")
+        calculators._get_calculator_schema("unknown")
     except ValueError as error:
-        assert "Unknown calculator 'unknown'." == str(error)
+        assert "Unknown calculator slug: unknown" == str(error)
     else:
         raise AssertionError("Expected ValueError for unknown calculator")

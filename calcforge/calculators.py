@@ -6,11 +6,6 @@ from dataclasses import dataclass
 from typing import Any, Callable
 from urllib.parse import quote, urlencode
 
-from sympy import Derivative, Integral, MatrixBase, sympify
-
-from calcforge import algebra, arithmetic, geometry, stats
-
-
 DEFAULT_CALC_URL_BASE = "https://calcforge.app/calculator"
 DEFAULT_CAS_GUI_URL = "https://calcforge.app/cas"
 
@@ -19,145 +14,203 @@ DEFAULT_CAS_GUI_URL = "https://calcforge.app/cas"
 class CalculatorDefinition:
     """Declarative metadata and runtime behavior for a single calculator."""
 
-    calculator_id: str
+    slug: str
+    name: str
     category: str
     description: str
-    input_schema: dict[str, Any]
+    route: str
+    type: str
+    schema: dict[str, dict[str, Any]]
     evaluator: Callable[[dict[str, Any]], Any]
 
 
 def _evaluate_add(inputs: dict[str, Any]) -> Any:
+    from calcforge import arithmetic
+
     return arithmetic.add(inputs["a"], inputs["b"])
 
 
 def _evaluate_subtract(inputs: dict[str, Any]) -> Any:
+    from calcforge import arithmetic
+
     return arithmetic.subtract(inputs["a"], inputs["b"])
 
 
 def _evaluate_multiply(inputs: dict[str, Any]) -> Any:
+    from calcforge import arithmetic
+
     return arithmetic.multiply(inputs["a"], inputs["b"])
 
 
 def _evaluate_divide(inputs: dict[str, Any]) -> Any:
+    from calcforge import arithmetic
+
     return arithmetic.divide(inputs["a"], inputs["b"])
 
 
 def _evaluate_percentage_of(inputs: dict[str, Any]) -> Any:
+    from calcforge import arithmetic
+
     return arithmetic.percentage_of(inputs["value"], inputs["percent"])
 
 
 def _evaluate_circle_area(inputs: dict[str, Any]) -> Any:
+    from calcforge import geometry
+
     return geometry.circle_area(inputs["radius"])
 
 
 def _evaluate_solve_quadratic(inputs: dict[str, Any]) -> Any:
+    from calcforge import algebra
+
     return list(algebra.solve_quadratic(inputs["a"], inputs["b"], inputs["c"]))
 
 
 def _evaluate_mean(inputs: dict[str, Any]) -> Any:
+    from calcforge import stats
+
     return stats.mean(inputs["numbers"])
 
 
 _CALCULATORS: dict[str, CalculatorDefinition] = {
     "add": CalculatorDefinition(
-        calculator_id="add",
+        slug="add",
+        name="Addition Calculator",
         category="arithmetic",
         description="Add two numbers.",
-        input_schema={
-            "type": "object",
-            "required": ["a", "b"],
-            "properties": {"a": {"type": "number"}, "b": {"type": "number"}},
+        route="/arithmetic/add",
+        type="form",
+        schema={
+            "a": {"type": "number", "label": "A", "required": True},
+            "b": {"type": "number", "label": "B", "required": True},
         },
         evaluator=_evaluate_add,
     ),
     "subtract": CalculatorDefinition(
-        calculator_id="subtract",
+        slug="subtract",
+        name="Subtraction Calculator",
         category="arithmetic",
         description="Subtract b from a.",
-        input_schema={
-            "type": "object",
-            "required": ["a", "b"],
-            "properties": {"a": {"type": "number"}, "b": {"type": "number"}},
+        route="/arithmetic/subtract",
+        type="form",
+        schema={
+            "a": {"type": "number", "label": "A", "required": True},
+            "b": {"type": "number", "label": "B", "required": True},
         },
         evaluator=_evaluate_subtract,
     ),
     "multiply": CalculatorDefinition(
-        calculator_id="multiply",
+        slug="multiply",
+        name="Multiplication Calculator",
         category="arithmetic",
         description="Multiply two numbers.",
-        input_schema={
-            "type": "object",
-            "required": ["a", "b"],
-            "properties": {"a": {"type": "number"}, "b": {"type": "number"}},
+        route="/arithmetic/multiply",
+        type="form",
+        schema={
+            "a": {"type": "number", "label": "A", "required": True},
+            "b": {"type": "number", "label": "B", "required": True},
         },
         evaluator=_evaluate_multiply,
     ),
     "divide": CalculatorDefinition(
-        calculator_id="divide",
+        slug="divide",
+        name="Division Calculator",
         category="arithmetic",
         description="Divide a by b.",
-        input_schema={
-            "type": "object",
-            "required": ["a", "b"],
-            "properties": {"a": {"type": "number"}, "b": {"type": "number", "not": {"const": 0}}},
+        route="/arithmetic/divide",
+        type="form",
+        schema={
+            "a": {"type": "number", "label": "A", "required": True},
+            "b": {
+                "type": "number",
+                "label": "B",
+                "required": True,
+                "not": {"const": 0},
+            },
         },
         evaluator=_evaluate_divide,
     ),
     "percentage_of": CalculatorDefinition(
-        calculator_id="percentage_of",
+        slug="percentage_of",
+        name="Percentage Calculator",
         category="arithmetic",
         description="Calculate percent percent of value.",
-        input_schema={
-            "type": "object",
-            "required": ["value", "percent"],
-            "properties": {"value": {"type": "number"}, "percent": {"type": "number"}},
+        route="/arithmetic/percentage",
+        type="form",
+        schema={
+            "value": {"type": "number", "label": "Value", "required": True},
+            "percent": {"type": "number", "label": "Percent", "required": True},
         },
         evaluator=_evaluate_percentage_of,
     ),
     "circle_area": CalculatorDefinition(
-        calculator_id="circle_area",
+        slug="circle_area",
+        name="Circle Area Calculator",
         category="geometry",
         description="Calculate a circle area from radius.",
-        input_schema={
-            "type": "object",
-            "required": ["radius"],
-            "properties": {"radius": {"type": "number", "exclusiveMinimum": 0}},
+        route="/geometry/circle-area",
+        type="form",
+        schema={
+            "radius": {
+                "type": "number",
+                "label": "Radius",
+                "required": True,
+                "exclusiveMinimum": 0,
+            }
         },
         evaluator=_evaluate_circle_area,
     ),
     "solve_quadratic": CalculatorDefinition(
-        calculator_id="solve_quadratic",
+        slug="solve_quadratic",
+        name="Quadratic Equation Calculator",
         category="algebra",
         description="Solve a*x**2 + b*x + c = 0.",
-        input_schema={
-            "type": "object",
-            "required": ["a", "b", "c"],
-            "properties": {
-                "a": {"type": "number", "not": {"const": 0}},
-                "b": {"type": "number"},
-                "c": {"type": "number"},
-            },
+        route="/algebra/solve-quadratic",
+        type="form",
+        schema={
+            "a": {"type": "number", "label": "A", "required": True, "not": {"const": 0}},
+            "b": {"type": "number", "label": "B", "required": True},
+            "c": {"type": "number", "label": "C", "required": True},
         },
         evaluator=_evaluate_solve_quadratic,
     ),
     "mean": CalculatorDefinition(
-        calculator_id="mean",
+        slug="mean",
+        name="Mean Calculator",
         category="statistics",
         description="Calculate the arithmetic mean.",
-        input_schema={
-            "type": "object",
-            "required": ["numbers"],
-            "properties": {
-                "numbers": {
-                    "type": "array",
-                    "items": {"type": "number"},
-                    "minItems": 1,
-                }
-            },
+        route="/statistics/mean",
+        type="form",
+        schema={
+            "numbers": {
+                "type": "array",
+                "label": "Numbers",
+                "required": True,
+                "items": {"type": "number"},
+                "minItems": 1,
+            }
         },
         evaluator=_evaluate_mean,
     ),
 }
+
+
+def _metadata(calculator: CalculatorDefinition) -> dict[str, Any]:
+    return {
+        "slug": calculator.slug,
+        "name": calculator.name,
+        "category": calculator.category,
+        "description": calculator.description,
+        "route": calculator.route,
+        "type": calculator.type,
+    }
+
+
+def _get_calculator(slug: str) -> CalculatorDefinition:
+    calculator = _CALCULATORS.get(slug)
+    if calculator is None:
+        raise ValueError(f"Unknown calculator slug: {slug}")
+    return calculator
 
 
 def list_calculators(category: str | None = None) -> list[dict[str, Any]]:
@@ -166,41 +219,72 @@ def list_calculators(category: str | None = None) -> list[dict[str, Any]]:
     if category is not None:
         calculators = [calc for calc in calculators if calc.category == category]
 
-    return [
-        {
-            "calculator_id": calc.calculator_id,
-            "category": calc.category,
-            "description": calc.description,
-        }
-        for calc in calculators
-    ]
+    return [_metadata(calc) for calc in calculators]
+
+
+def _get_calculator_schema(slug: str) -> dict[str, Any]:
+    """Return the input schema wrapper for a registered calculator slug."""
+    calculator = _get_calculator(slug)
+    return {"calculator": slug, "schema": calculator.schema}
 
 
 def get_calculator_schema(calculator_id: str) -> dict[str, Any]:
-    """Return the input JSON schema for a registered calculator."""
-    calculator = _CALCULATORS.get(calculator_id)
-    if calculator is None:
-        raise ValueError(f"Unknown calculator_id: {calculator_id}")
-    return calculator.input_schema
+    """Backward-compatible alias for schema retrieval."""
+    return _get_calculator_schema(calculator_id)
 
 
-def generate_prefilled_url(calculator_id: str, inputs: dict[str, Any], base_url: str = DEFAULT_CALC_URL_BASE) -> str:
+def _validate_scalar_type(field_name: str, expected_type: str, value: Any) -> None:
+    if expected_type == "number" and not isinstance(value, (int, float)):
+        raise ValueError(f"Invalid input type for '{field_name}': expected number")
+    if expected_type == "string" and not isinstance(value, str):
+        raise ValueError(f"Invalid input type for '{field_name}': expected string")
+
+
+def _validate_inputs(calculator: CalculatorDefinition, inputs: dict[str, Any]) -> None:
+    if not isinstance(inputs, dict):
+        raise ValueError("Invalid input type for 'inputs': expected object")
+
+    for field_name, field_schema in calculator.schema.items():
+        required = field_schema.get("required", False)
+        if required and field_name not in inputs:
+            raise ValueError(f"Missing required input: {field_name}")
+        if field_name not in inputs:
+            continue
+
+        value = inputs[field_name]
+        expected_type = field_schema.get("type")
+
+        if expected_type == "array":
+            if not isinstance(value, list):
+                raise ValueError(f"Invalid input type for '{field_name}': expected array")
+            min_items = field_schema.get("minItems")
+            if isinstance(min_items, int) and len(value) < min_items:
+                raise ValueError(f"Invalid input for '{field_name}': requires at least {min_items} items")
+            item_type = field_schema.get("items", {}).get("type")
+            if item_type == "number" and any(not isinstance(item, (int, float)) for item in value):
+                raise ValueError(f"Invalid input type for '{field_name}': expected array of numbers")
+            continue
+
+        if expected_type in {"number", "string"}:
+            _validate_scalar_type(field_name, expected_type, value)
+
+
+def generate_prefilled_url(slug: str, inputs: dict[str, Any], base_url: str = DEFAULT_CALC_URL_BASE) -> str:
     """Build a prefilled calculator URL for GUI handoff or bookmarking."""
-    query_payload = {"calculator": calculator_id, **{key: str(value) for key, value in inputs.items()}}
+    query_payload = {"calculator": slug, **{key: str(value) for key, value in inputs.items()}}
     return f"{base_url}?{urlencode(query_payload)}"
 
 
-def calculate(calculator_id: str, inputs: dict[str, Any]) -> dict[str, Any]:
-    """Run a registered calculator and return result plus prefilled URL."""
-    calculator = _CALCULATORS.get(calculator_id)
-    if calculator is None:
-        raise ValueError(f"Unknown calculator_id: {calculator_id}")
+def calculate(slug: str, inputs: dict[str, Any]) -> dict[str, Any]:
+    """Run a registered calculator and return a structured result payload."""
+    calculator = _get_calculator(slug)
+    _validate_inputs(calculator, inputs)
 
     result = calculator.evaluator(inputs)
     return {
-        "calculator_id": calculator_id,
+        "calculator": slug,
         "result": result,
-        "prefilled_url": generate_prefilled_url(calculator_id, inputs),
+        "prefilled_url": generate_prefilled_url(slug, inputs),
     }
 
 
@@ -215,6 +299,8 @@ def calculate_cas(expressions: list[str], precision: int = 15) -> dict[str, Any]
     GUI handoff details instead of server-side results.
     """
     outputs: list[dict[str, Any]] = []
+    from sympy import Derivative, Integral, MatrixBase, sympify
+
     unsupported_types = (Integral, Derivative, MatrixBase)
 
     for expression in expressions:
