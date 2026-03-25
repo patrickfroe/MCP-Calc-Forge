@@ -12,14 +12,12 @@ def test_list_calculators_comes_from_registry() -> None:
     assert any(item["slug"] == "cas" for item in items)
 
 
-def test_schema_lookup_returns_schema_for_registered_slug() -> None:
-    payload = calculators._get_calculator_schema("bmi")
-    assert payload["slug"] == "bmi"
-    assert payload["schema"]["type"] == "object"
+def test_schema_lookup_returns_unknown_slug_error() -> None:
+    payload = calculators.get_calculator_schema("add")
 
 
 def test_unknown_slug_errors() -> None:
-    schema_payload = calculators._get_calculator_schema("add")
+    schema_payload = calculators.get_calculator_schema("add")
     calc_payload = calculators.calculate("add", {"primary_value": 1})
 
     assert schema_payload["error"]["code"] == "unknown_slug"

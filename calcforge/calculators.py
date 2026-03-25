@@ -657,12 +657,11 @@ def list_calculators(category: str | None = None) -> list[JSON]:
     return sorted([i for i in items if i["category"] == category], key=lambda x: x["slug"])
 
 
-def _get_calculator_schema(slug: str) -> JSON:
+def get_calculator_schema(slug: str) -> JSON:
     entry = CALCULATOR_REGISTRY.get(slug)
     if entry is None:
         return _error_response("unknown_slug", f"Unknown calculator slug: {slug}", {"slug": slug})
     return {"slug": slug, "schema": entry["schema"]}
-
 
 def calculate(slug: str, inputs: dict[str, Any]) -> JSON:
     entry = CALCULATOR_REGISTRY.get(slug)
