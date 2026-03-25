@@ -200,21 +200,27 @@ def list_calculators(category: str | None = None) -> list[dict[str, Any]]:
 
 
 @mcp.tool()
+def _get_calculator_schema(slug: str) -> dict[str, Any]:
+    """Get the input schema for a calculator identified by slug."""
+    return calculators._get_calculator_schema(slug)
+
+
+@mcp.tool()
 def get_calculator_schema(calculator_id: str) -> dict[str, Any]:
-    """Get the input schema for a specific calculator."""
+    """Backward-compatible alias for schema retrieval."""
     return calculators.get_calculator_schema(calculator_id)
 
 
 @mcp.tool()
-def calculate(calculator_id: str, inputs: dict[str, Any]) -> dict[str, Any]:
+def calculate(slug: str, inputs: dict[str, Any]) -> dict[str, Any]:
     """Run a calculation and return result + prefilled URL."""
-    return calculators.calculate(calculator_id, inputs)
+    return calculators.calculate(slug, inputs)
 
 
 @mcp.tool()
-def generate_prefilled_url(calculator_id: str, inputs: dict[str, Any]) -> str:
+def generate_prefilled_url(slug: str, inputs: dict[str, Any]) -> str:
     """Generate a prefilled URL without running calculation."""
-    return calculators.generate_prefilled_url(calculator_id, inputs)
+    return calculators.generate_prefilled_url(slug, inputs)
 
 
 @mcp.tool()

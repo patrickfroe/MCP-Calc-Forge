@@ -49,11 +49,47 @@ The project is intentionally small and modular:
 
 ### 6) Calculator orchestration + CAS tools
 - `list_calculators(category=None)`
-- `get_calculator_schema(calculator_id)`
-- `calculate(calculator_id, inputs)`
-- `generate_prefilled_url(calculator_id, inputs)`
+- `_get_calculator_schema(slug)`
+- `calculate(slug, inputs)`
+- `generate_prefilled_url(slug, inputs)`
 - `calculate_cas(expressions, precision=15)`
 - `calculate_cas_headless(expressions, precision=15)` (alias of `calculate_cas`)
+
+`list_calculators` returns metadata in a standardized shape:
+`slug`, `name`, `category`, `description`, `route`, `type`.
+
+`_get_calculator_schema` and `calculate` use the same calculator slug registry, so discovery, schema lookup, and execution are consistent.
+
+Example responses:
+
+```json
+{
+  "slug": "add",
+  "name": "Addition Calculator",
+  "category": "arithmetic",
+  "description": "Add two numbers.",
+  "route": "/arithmetic/add",
+  "type": "form"
+}
+```
+
+```json
+{
+  "calculator": "add",
+  "schema": {
+    "a": { "type": "number", "label": "A", "required": true },
+    "b": { "type": "number", "label": "B", "required": true }
+  }
+}
+```
+
+```json
+{
+  "calculator": "add",
+  "result": 7,
+  "prefilled_url": "https://calcforge.app/calculator?calculator=add&a=2&b=5"
+}
+```
 
 ## Architecture overview
 
