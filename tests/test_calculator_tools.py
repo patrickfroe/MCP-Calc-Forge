@@ -24,10 +24,8 @@ def test_get_calculator_schema_by_slug() -> None:
     assert schema_payload["schema"]["a"]["required"] is True
 
 
-def test_get_calculator_schema_raises_for_unknown_tool() -> None:
-    try:
-        calculators._get_calculator_schema("unknown")
-    except ValueError as error:
-        assert "Unknown calculator slug: unknown" == str(error)
-    else:
-        raise AssertionError("Expected ValueError for unknown calculator")
+def test_get_calculator_schema_returns_json_error_for_unknown_tool() -> None:
+    schema_payload = calculators._get_calculator_schema("unknown")
+
+    assert schema_payload["error"]["code"] == "unknown_slug"
+    assert schema_payload["error"]["details"]["slug"] == "unknown"
