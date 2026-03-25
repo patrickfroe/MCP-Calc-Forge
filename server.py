@@ -7,6 +7,7 @@ an HTTP JSON-RPC endpoint.
 from __future__ import annotations
 
 from fractions import Fraction
+import inspect
 import os
 from typing import Any
 
