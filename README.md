@@ -1,10 +1,21 @@
 # MCP CalcForge
 
-MCP CalcForge currently runs as a minimal FastMCP server **without any registered calculators**.
+MCP CalcForge runs as a FastMCP server with a **unified calculator registry**.
 
 ## Available MCP tools
 
-No calculator tools are currently exposed.
+- `list_calculators(category=None)`
+- `_get_calculator_schema(slug)`
+- `calculate(slug, inputs)`
+
+All calculator discovery now goes through the registry in `calcforge/calculators.py`.
+
+## Registry behavior
+
+- Each registered calculator contains `meta`, `schema`, and `handler`.
+- `form` calculators receive a typed default schema with validation constraints.
+- Interactive tools (`cas`, `rpn`, etc.) are registry-discoverable with session payload schema.
+- `calculate` returns predictable JSON errors for unknown slugs, invalid inputs, and unimplemented handlers.
 
 ## Requirements
 
@@ -38,5 +49,5 @@ pytest
 
 ## File map
 
-- `server.py` – MCP server setup
-- `calcforge/calculators.py` – empty calculator registry behavior
+- `server.py` – MCP server setup and tool registration
+- `calcforge/calculators.py` – unified calculator registry and execution
