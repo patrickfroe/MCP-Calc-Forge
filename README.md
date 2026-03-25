@@ -92,6 +92,30 @@ Example with custom port:
 FASTMCP_PORT=8081 python server.py
 ```
 
+## Testing the server with MCP Inspector
+
+You can validate that the server is reachable and that tools are callable by using the official MCP Inspector.
+
+1. Start the server in one terminal:
+
+   ```bash
+   python server.py
+   ```
+
+2. In a second terminal, start MCP Inspector:
+
+   ```bash
+   npx @modelcontextprotocol/inspector
+   ```
+
+3. In the Inspector UI:
+   - Select **Streamable HTTP** transport.
+   - Set the server URL to `http://127.0.0.1:8080/mcp` (or your custom `FASTMCP_PORT`).
+   - Connect and open the **Tools** tab.
+   - Run a quick check call such as `add` with `a=2` and `b=3` (expected result: `5`).
+
+If you started the server with a custom port, update the Inspector URL accordingly (for example `http://127.0.0.1:8081/mcp`).
+
 ## How clients use it
 
 An MCP-compatible client can connect to the server endpoint and invoke registered tools by name with structured arguments. Tool signatures and docstrings are defined in `server.py`, while the implementation lives in the backing modules.
