@@ -12,7 +12,7 @@ from typing import Any
 from fastmcp import FastMCP
 
 from calcforge import algebra, arithmetic, geometry, stats
-from calcwerk import utils
+from calcforge import utils
 
 mcp = FastMCP("MCP CalcForge")
 
