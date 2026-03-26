@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Callable
 
 
 @dataclass(frozen=True)
@@ -27,11 +27,14 @@ class CalculationExample:
 
 @dataclass(frozen=True)
 class CalculationDefinition:
-    """Metadaten einer registrierten Berechnung."""
+    """Metadaten und Ausführungslogik einer registrierten Berechnung."""
 
     id: str
     name: str
     description: str
     llm_usage_hint: str
     input_fields: tuple[InputField, ...]
+    output_description: str
+    output_type: str
     examples: tuple[CalculationExample, ...]
+    execute: Callable[[dict[str, object]], object]

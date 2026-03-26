@@ -12,6 +12,7 @@ class CalculationValidator:
         "integer": (int,),
         "string": (str,),
         "boolean": (bool,),
+        "number_list": (list,),
     }
 
     def validate(self, definition: CalculationDefinition, payload: dict[str, object]) -> tuple[FieldError, ...]:
@@ -65,6 +66,10 @@ class CalculationValidator:
                 )
             ]
 
+        list_error = self._validate_number_list(field, value)
+        if list_error:
+            return [list_error]
+
         range_error = self._validate_range(field, value)
         if range_error:
             return [range_error]
@@ -74,6 +79,37 @@ class CalculationValidator:
             return [enum_error]
 
         return []
+
+    @staticmethod
+    def _validate_number_list(field: InputField, value: object) -> FieldError | None:
+        if field.field_type != "number_list":
+            return None
+
+        if not isinstance(value, list):
+            return FieldError(
+                field=field.name,
+                code="invalid_type",
+                message=f"Feld '{field.name}' muss Typ number_list haben.",
+                expected="number_list",
+                received=type(value).__name__,
+            )
+
+        if not value:
+            return FieldError(
+                field=field.name,
+                code="invalid_value",
+                message=f"Feld '{field.name}' darf keine leere Liste sein.",
+            )
+
+        if any(isinstance(item, bool) or not isinstance(item, (int, float)) for item in value):
+            return FieldError(
+                field=field.name,
+                code="invalid_type",
+                message=f"Feld '{field.name}' muss nur numerische Werte enthalten.",
+                expected="list[number]",
+            )
+
+        return None
 
     @staticmethod
     def _validate_range(field: InputField, value: object) -> FieldError | None:

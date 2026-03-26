@@ -35,6 +35,8 @@ def get_calculation_details_tool(
                 }
                 for field in definition.input_fields
             ],
+            "output_description": definition.output_description,
+            "output_type": definition.output_type,
             "examples": [{"title": example.title, "input": example.input} for example in definition.examples],
         },
     }

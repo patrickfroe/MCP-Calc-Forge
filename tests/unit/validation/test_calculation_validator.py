@@ -12,7 +12,10 @@ def _build_definition() -> CalculationDefinition:
             InputField(name="amount", field_type="number", description="Amount", min_value=0, max_value=10),
             InputField(name="mode", field_type="string", description="Mode", allowed_values=("a", "b")),
         ),
+        output_description="out",
+        output_type="number",
         examples=(CalculationExample(title="ex", input={"amount": 5, "mode": "a"}),),
+        execute=lambda payload: payload["amount"],
     )
 
 
@@ -56,3 +59,23 @@ def test_validator_invalid_enum() -> None:
     errors = validator.validate(_build_definition(), {"amount": 5, "mode": "x"})
 
     assert errors[0].code == "invalid_enum"
+
+
+def test_validator_number_list_requires_values() -> None:
+    validator = CalculationValidator()
+    definition = CalculationDefinition(
+        id="avg",
+        name="Average",
+        description="desc",
+        llm_usage_hint="hint",
+        input_fields=(InputField(name="values", field_type="number_list", description="Values"),),
+        output_description="out",
+        output_type="number",
+        examples=(CalculationExample(title="ex", input={"values": [1, 2]}),),
+        execute=lambda payload: 0,
+    )
+
+    errors = validator.validate(definition, {"values": []})
+
+    assert errors[0].code == "invalid_value"
+    assert errors[0].field == "values"
