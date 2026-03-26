@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-
 from pathlib import Path
 import sys
 
@@ -31,18 +30,21 @@ def test_mcp_server_registers_all_four_tools() -> None:
 def test_list_calculations_and_get_details_end_to_end() -> None:
     list_payload = list_calculations_tool()
     assert list_payload["ok"] is True
-    assert len(list_payload["result"]["calculations"]) == 4
+    assert len(list_payload["result"]["calculations"]) == 14
 
-    details_payload = get_calculation_details_tool("vat_calculation")
+    details_payload = get_calculation_details_tool("loan_annuity_payment")
     assert details_payload["ok"] is True
-    assert details_payload["result"]["id"] == "vat_calculation"
+    assert details_payload["result"]["id"] == "loan_annuity_payment"
     assert details_payload["result"]["output_type"] == "object"
 
 
 def test_execute_calculation_and_expression_end_to_end() -> None:
-    calc_payload = execute_calculation_tool("percentage_of_value", {"base_value": 200, "percentage": 10})
+    calc_payload = execute_calculation_tool(
+        "currency_conversion_static",
+        {"amount": 100, "exchange_rate": 1.08, "source_currency": "EUR", "target_currency": "USD"},
+    )
     assert calc_payload["ok"] is True
-    assert calc_payload["result"] == 20
+    assert calc_payload["result"]["converted_amount"] == 108
 
     expr_payload = evaluate_expression_tool("(2 + 3) * 5")
     assert expr_payload["ok"] is True
@@ -53,6 +55,13 @@ def test_tools_return_structured_errors() -> None:
     unknown_payload = get_calculation_details_tool("missing")
     assert unknown_payload["ok"] is False
     assert unknown_payload["error"]["code"] == "UNKNOWN_CALCULATION_ID"
+
+    invalid_calc_payload = execute_calculation_tool(
+        "currency_conversion_static",
+        {"amount": 100, "exchange_rate": 1.08, "source_currency": "EUR", "target_currency": "JPY"},
+    )
+    assert invalid_calc_payload["ok"] is False
+    assert invalid_calc_payload["error"]["code"] == "VALIDATION_ERROR"
 
     invalid_expr_payload = evaluate_expression_tool("__import__('os')")
     assert invalid_expr_payload["ok"] is False
