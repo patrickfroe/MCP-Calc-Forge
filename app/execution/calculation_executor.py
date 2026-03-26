@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from app.calculations.registry import CalculationRegistry
 from app.validation.calculation_validator import CalculationValidator
-from app.validation.errors import error_response
+from app.validation.errors import FieldError, error_response
 
 
 class CalculationExecutor:
@@ -28,26 +28,19 @@ class CalculationExecutor:
                 details=validation_errors,
             )
 
-        result = self._run(definition.id, payload)
+        try:
+            result = definition.execute(payload)
+        except ValueError as error:
+            return error_response(
+                code="VALIDATION_ERROR",
+                message="Validierung fehlgeschlagen.",
+                details=(
+                    FieldError(
+                        field="payload",
+                        code="invalid_value",
+                        message=str(error),
+                    ),
+                ),
+            )
+
         return {"ok": True, "calculation_id": definition.id, "result": result}
-
-    def _run(self, calculation_id: str, payload: dict[str, object]) -> dict[str, float]:
-        if calculation_id == "percentage_of":
-            part = float(payload["part"])
-            whole = float(payload["whole"])
-            return {"percentage": (part / whole) * 100}
-
-        if calculation_id == "vat_add":
-            net_amount = float(payload["net_amount"])
-            vat_rate = float(payload["vat_rate"])
-            gross_amount = net_amount * (1 + (vat_rate / 100))
-            return {"gross_amount": gross_amount, "vat_amount": gross_amount - net_amount}
-
-        if calculation_id == "simple_interest":
-            principal = float(payload["principal"])
-            annual_rate = float(payload["annual_rate"])
-            years = float(payload["years"])
-            interest = principal * (annual_rate / 100) * years
-            return {"interest": interest, "total_amount": principal + interest}
-
-        return {"unsupported": 0.0}

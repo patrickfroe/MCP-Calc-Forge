@@ -31,17 +31,18 @@ def test_mcp_server_registers_all_four_tools() -> None:
 def test_list_calculations_and_get_details_end_to_end() -> None:
     list_payload = list_calculations_tool()
     assert list_payload["ok"] is True
-    assert len(list_payload["result"]["calculations"]) >= 3
+    assert len(list_payload["result"]["calculations"]) == 4
 
-    details_payload = get_calculation_details_tool("vat_add")
+    details_payload = get_calculation_details_tool("vat_calculation")
     assert details_payload["ok"] is True
-    assert details_payload["result"]["id"] == "vat_add"
+    assert details_payload["result"]["id"] == "vat_calculation"
+    assert details_payload["result"]["output_type"] == "object"
 
 
 def test_execute_calculation_and_expression_end_to_end() -> None:
-    calc_payload = execute_calculation_tool("percentage_of", {"part": 20, "whole": 80})
+    calc_payload = execute_calculation_tool("percentage_of_value", {"base_value": 200, "percentage": 10})
     assert calc_payload["ok"] is True
-    assert calc_payload["result"]["percentage"] == 25
+    assert calc_payload["result"] == 20
 
     expr_payload = evaluate_expression_tool("(2 + 3) * 5")
     assert expr_payload["ok"] is True

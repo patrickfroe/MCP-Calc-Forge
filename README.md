@@ -17,6 +17,20 @@ All calculator discovery now goes through the registry in `calcforge/calculators
 - Interactive tools (`cas`, `rpn`, etc.) are registry-discoverable with payload schemas and executable handlers.
 - `calculate` returns predictable JSON errors for unknown slugs and invalid inputs.
 
+## Python calculation catalog (`app/`)
+
+The MCP calculation server in `app/` uses a central registry with calculation definitions.
+
+### Registering a new calculation
+
+1. Create a new module in `app/calculations/catalog/`.
+2. Define a `CALCULATION = CalculationDefinition(...)` with required metadata:
+   - `id`, `name`, `description`, `llm_usage_hint`
+   - `input_fields`, `output_description`, `output_type`, `examples`
+   - `execute` function containing the business logic
+3. Export and add it to `ALL_CALCULATIONS` in `app/calculations/catalog/__init__.py`.
+4. Add unit tests for happy path and error cases.
+
 ## Requirements
 
 - Python 3.10+
