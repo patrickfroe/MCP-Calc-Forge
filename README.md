@@ -66,10 +66,9 @@ pip install -r requirements.txt
 ## Server starten
 
 ```bash
-python server.py
+python -m app.mcp.server
 ```
 
-`server.py` delegiert an den MCP-Server unter `app/mcp/server.py`.
 
 ## Tests
 
