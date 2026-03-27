@@ -37,6 +37,9 @@ app/
     expression_engine.py     # sichere Expression-Auswertung (ohne eval)
   mcp/
     tools/                   # Tool-Handler (ohne Business-Logik)
+    tool_specs.py            # zentrale Tool-Metadaten (Name/Beschreibung/Schema)
+    discovery.py             # Discovery-JSON aus zentralen Tool-Metadaten
+    discovery_http.py        # optionaler HTTP-Endpoint /discovery
     server.py                # MCP-Server + Tool-Registrierung
 ```
 
@@ -49,6 +52,21 @@ app/
    - `execute`-Funktion mit der eigentlichen Business-Logik
 3. Berechnung in `app/calculations/catalog/__init__.py` zu `ALL_CALCULATIONS` hinzufügen.
 4. Unit-Tests für Happy Path und Fehlerfälle ergänzen.
+
+
+## Discovery (HTTP)
+
+Zusätzlich zur normalen MCP-Nutzung (STDIO) gibt es einen Discovery-Output als JSON:
+
+- Endpoint: `GET /discovery`
+- Inhalt: `name`, `version`, `description`, `tools[]` mit `name`, `description`, `inputSchema`
+- Tool-Metadaten werden zentral in `app/mcp/tool_specs.py` gepflegt und sowohl für MCP-Registrierung als auch Discovery wiederverwendet.
+
+Start des Discovery-Servers (lokal):
+
+```bash
+python -m app.mcp.discovery_http
+```
 
 ## Voraussetzungen
 
