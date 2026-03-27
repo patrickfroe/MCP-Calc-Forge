@@ -39,7 +39,7 @@ app/
     tools/                   # Tool-Handler (ohne Business-Logik)
     tool_specs.py            # zentrale Tool-Metadaten (Name/Beschreibung/Schema)
     discovery.py             # Discovery-JSON aus zentralen Tool-Metadaten
-    discovery_http.py        # optionaler HTTP-Endpoint /discovery
+    discovery_http.py        # gemeinsamer HTTP-Endpoint /api/v1/mcp (GET Discovery, POST MCP)
     server.py                # MCP-Server + Tool-Registrierung
 ```
 
@@ -54,15 +54,16 @@ app/
 4. Unit-Tests für Happy Path und Fehlerfälle ergänzen.
 
 
-## Discovery (HTTP)
+## HTTP Endpoint für Discovery + MCP
 
-Zusätzlich zur normalen MCP-Nutzung (STDIO) gibt es einen Discovery-Output als JSON:
+Zusätzlich zur normalen MCP-Nutzung (STDIO) gibt es einen gemeinsamen HTTP-Endpoint:
 
-- Endpoint: `GET /discovery`
-- Inhalt: `name`, `version`, `description`, `tools[]` mit `name`, `description`, `inputSchema`
+- `GET /api/v1/mcp` liefert die Discovery-JSON mit `name`, `version`, `description`, `tools[]`
+- `POST /api/v1/mcp` verarbeitet MCP-JSON-RPC-Anfragen (Streamable HTTP)
 - Tool-Metadaten werden zentral in `app/mcp/tool_specs.py` gepflegt und sowohl für MCP-Registrierung als auch Discovery wiederverwendet.
+- Falls ein Client `Accept: text/event-stream` nutzt, wird der Request an den MCP-Transport weitergereicht (keine Discovery-JSON).
 
-Start des Discovery-Servers (lokal):
+Start des HTTP-Servers (lokal):
 
 ```bash
 python -m app.mcp.discovery_http
