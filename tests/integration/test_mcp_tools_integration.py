@@ -66,3 +66,23 @@ def test_tools_return_structured_errors() -> None:
     invalid_expr_payload = calculate_expression_tool("__import__('os')")
     assert invalid_expr_payload["ok"] is False
     assert invalid_expr_payload["error"]["code"] == "INVALID_EXPRESSION"
+
+
+def test_execute_calculation_tool_returns_object_shape_for_vat_calculation() -> None:
+    payload = execute_calculation_tool("vat_calculation", {"net_amount": 250, "vat_rate": 20})
+
+    assert payload["ok"] is True
+    assert payload["result"] == {
+        "net_amount": 250.0,
+        "vat_rate": 20.0,
+        "vat_amount": 50.0,
+        "gross_amount": 300.0,
+    }
+
+
+def test_execute_calculation_tool_returns_validation_error_for_average_empty_list() -> None:
+    payload = execute_calculation_tool("average", {"values": []})
+
+    assert payload["ok"] is False
+    assert payload["error"]["code"] == "VALIDATION_ERROR"
+    assert payload["error"]["details"][0]["field"] == "values"
