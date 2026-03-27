@@ -19,7 +19,7 @@ def test_build_discovery_payload_contains_server_metadata_and_tool_schemas() -> 
 
     by_name = {tool["name"]: tool for tool in tools}
     assert {
-        "evaluate_expression",
+        "calculate_expression",
         "list_calculations",
         "get_calculation_details",
         "execute_calculation",
@@ -30,6 +30,7 @@ def test_build_discovery_payload_contains_server_metadata_and_tool_schemas() -> 
         assert tool["description"]
         assert isinstance(tool["inputSchema"], dict)
 
+    assert "evaluate_expression" not in by_name
     assert by_name["execute_calculation"]["inputSchema"]["required"] == ["calculation_id", "input"]
 
 
@@ -43,6 +44,9 @@ def test_discovery_http_endpoint_returns_discovery_json() -> None:
         assert payload["name"] == "mcp-calc-forge"
         assert len(payload["tools"]) >= 4
         assert all("name" in tool and "description" in tool and "inputSchema" in tool for tool in payload["tools"])
+        names = {tool["name"] for tool in payload["tools"]}
+        assert "calculate_expression" in names
+        assert "evaluate_expression" not in names
 
 
 def test_mcp_post_requests_are_processed_on_same_endpoint() -> None:

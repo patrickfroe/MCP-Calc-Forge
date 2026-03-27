@@ -13,7 +13,7 @@ Python-MCP-Server für Berechnungen mit klar getrennter Architektur:
 
 Der Server registriert vier Tools:
 
-1. `evaluate_expression`
+1. `calculate_expression`
 2. `list_calculations`
 3. `get_calculation_details`
 4. `execute_calculation`
