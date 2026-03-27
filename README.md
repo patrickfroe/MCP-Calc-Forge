@@ -1,42 +1,61 @@
-# MCP CalcForge
+# MCP-Calc-Forge
 
-MCP CalcForge runs as a FastMCP server with a **unified calculator registry**.
+Python-MCP-Server für Berechnungen mit klar getrennter Architektur:
 
-## Available MCP tools
+- **Calculation Registry** für zentrale Verwaltung aller benannten Berechnungen
+- **Calculation Catalog** mit einzelnen Modulen unter `app/calculations/catalog/`
+- **Validation Layer** für Eingabeprüfung und einheitliche Fehler
+- **Execution Layer** für Ausführung benannter Berechnungen
+- **Expression Engine** getrennt von benannten Berechnungen
+- **MCP Tool Layer** mit genau vier Tools
 
-- `list_calculators(category=None)`
-- `_get_calculator_schema(slug)`
-- `calculate(slug, inputs)`
+## MCP-Tools
 
-All calculator discovery now goes through the registry in `calcforge/calculators.py`.
+Der Server registriert vier Tools:
 
-## Registry behavior
+1. `evaluate_expression`
+2. `list_calculations`
+3. `get_calculation_details`
+4. `execute_calculation`
 
-- Each registered calculator contains `meta`, `schema`, and `handler`.
-- `form` calculators receive a typed default schema with validation constraints.
-- Interactive tools (`cas`, `rpn`, etc.) are registry-discoverable with payload schemas and executable handlers.
-- `calculate` returns predictable JSON errors for unknown slugs and invalid inputs.
+Implementierung: `app/mcp/server.py`.
 
-## Python calculation catalog (`app/`)
+## Projektstruktur
 
-The MCP calculation server in `app/` uses a central registry with calculation definitions.
+```text
+app/
+  calculations/
+    catalog/                 # einzelne Berechnungen als Module
+    models.py                # Definitionen (InputField, CalculationDefinition, ...)
+    registry.py              # zentrale Registry
+  validation/
+    calculation_validator.py # Validierung benannter Berechnungen
+    expression_validator.py  # Validierung von Expressions
+    errors.py                # einheitliches Fehlerformat
+  execution/
+    calculation_executor.py  # Ausführung benannter Berechnungen
+    expression_engine.py     # sichere Expression-Auswertung (ohne eval)
+  mcp/
+    tools/                   # Tool-Handler (ohne Business-Logik)
+    server.py                # MCP-Server + Tool-Registrierung
+```
 
-### Registering a new calculation
+## Neue Berechnung registrieren
 
-1. Create a new module in `app/calculations/catalog/`.
-2. Define a `CALCULATION = CalculationDefinition(...)` with required metadata:
+1. Neues Modul in `app/calculations/catalog/` anlegen.
+2. `CALCULATION = CalculationDefinition(...)` definieren mit:
    - `id`, `name`, `description`, `llm_usage_hint`
    - `input_fields`, `output_description`, `output_type`, `examples`
-   - `execute` function containing the business logic
-3. Export and add it to `ALL_CALCULATIONS` in `app/calculations/catalog/__init__.py`.
-4. Add unit tests for happy path and error cases.
+   - `execute`-Funktion mit der eigentlichen Business-Logik
+3. Berechnung in `app/calculations/catalog/__init__.py` zu `ALL_CALCULATIONS` hinzufügen.
+4. Unit-Tests für Happy Path und Fehlerfälle ergänzen.
 
-## Requirements
+## Voraussetzungen
 
 - Python 3.10+
 - `fastmcp`
 
-Install:
+Installation:
 
 ```bash
 python -m venv .venv
@@ -44,24 +63,16 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Running the server
+## Server starten
 
 ```bash
 python server.py
 ```
 
-Default runtime:
-- transport: `http`
-- host: `127.0.0.1`
-- port: `8080` (override with `FASTMCP_PORT`)
+`server.py` delegiert an den MCP-Server unter `app/mcp/server.py`.
 
-## Testing
+## Tests
 
 ```bash
 pytest
 ```
-
-## File map
-
-- `server.py` – MCP server setup and tool registration
-- `calcforge/calculators.py` – unified calculator registry and execution
