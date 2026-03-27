@@ -1,37 +1,55 @@
 from __future__ import annotations
 
-import json
-from http import HTTPStatus
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from starlette.applications import Starlette
+from starlette.middleware import Middleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import JSONResponse, Response
+from starlette.routing import Mount
 
 from app.mcp.discovery import build_discovery_payload
+from app.mcp.server import create_mcp_server
 
 
-class DiscoveryRequestHandler(BaseHTTPRequestHandler):
-    def do_GET(self) -> None:  # noqa: N802
-        if self.path != "/discovery":
-            self.send_response(HTTPStatus.NOT_FOUND)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({"error": "Not Found"}).encode("utf-8"))
-            return
+MCP_HTTP_PATH = "/api/v1/mcp"
 
-        payload = build_discovery_payload()
-        response_bytes = json.dumps(payload).encode("utf-8")
 
-        self.send_response(HTTPStatus.OK)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(response_bytes)))
-        self.end_headers()
-        self.wfile.write(response_bytes)
+class DiscoveryGetMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app: Starlette, path: str = MCP_HTTP_PATH) -> None:
+        super().__init__(app)
+        self._path = path
 
-    def log_message(self, format: str, *args: object) -> None:  # noqa: A003
-        return
+    async def dispatch(self, request: Request, call_next) -> Response:
+        accepts = request.headers.get("accept", "")
+        is_discovery_get = (
+            request.url.path == self._path
+            and request.method == "GET"
+            and "text/event-stream" not in accepts
+        )
+        if is_discovery_get:
+            return JSONResponse(build_discovery_payload())
+
+        return await call_next(request)
+
+
+def create_combined_http_app(path: str = MCP_HTTP_PATH) -> Starlette:
+    mcp = create_mcp_server()
+    mcp_http_app = mcp.http_app(path=path, transport="streamable-http")
+
+    app = Starlette(
+        routes=[Mount("/", app=mcp_http_app)],
+        middleware=[Middleware(DiscoveryGetMiddleware, path=path)],
+        lifespan=mcp_http_app.router.lifespan_context,
+    )
+    app.state.fastmcp_server = mcp
+    app.state.path = path
+    return app
 
 
 def run_discovery_http_server(host: str = "127.0.0.1", port: int = 8090) -> None:
-    with ThreadingHTTPServer((host, port), DiscoveryRequestHandler) as server:
-        server.serve_forever()
+    import uvicorn
+
+    uvicorn.run(create_combined_http_app(), host=host, port=port)
 
 
 if __name__ == "__main__":

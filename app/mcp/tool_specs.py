@@ -31,8 +31,8 @@ def get_calculation_details_handler(calculation_id: str) -> dict[str, object]:
     return get_calculation_details_tool(calculation_id=calculation_id)
 
 
-def execute_calculation_handler(calculation_id: str, inputs: dict[str, object]) -> dict[str, object]:
-    return execute_calculation_tool(calculation_id=calculation_id, inputs=inputs)
+def execute_calculation_handler(calculation_id: str, input: dict[str, object]) -> dict[str, object]:
+    return execute_calculation_tool(calculation_id=calculation_id, inputs=input)
 
 
 TOOL_SPECS: tuple[MCPToolSpec, ...] = (
@@ -63,13 +63,13 @@ TOOL_SPECS: tuple[MCPToolSpec, ...] = (
     ),
     MCPToolSpec(
         name="get_calculation_details",
-        description="Get metadata and input requirements for a named calculation",
+        description="Get metadata and input requirements for a specific calculation",
         input_schema={
             "type": "object",
             "properties": {
                 "calculation_id": {
                     "type": "string",
-                    "description": "Unique id of the registered calculation",
+                    "description": "Unique identifier of the calculation",
                 }
             },
             "required": ["calculation_id"],
@@ -78,20 +78,20 @@ TOOL_SPECS: tuple[MCPToolSpec, ...] = (
     ),
     MCPToolSpec(
         name="execute_calculation",
-        description="Execute a named calculation with validated inputs",
+        description="Execute a named calculation with structured input values",
         input_schema={
             "type": "object",
             "properties": {
                 "calculation_id": {
                     "type": "string",
-                    "description": "Unique id of the registered calculation",
+                    "description": "Unique identifier of the calculation",
                 },
-                "inputs": {
+                "input": {
                     "type": "object",
-                    "description": "Input payload expected by the selected calculation",
+                    "description": "Structured input values for the selected calculation",
                 },
             },
-            "required": ["calculation_id", "inputs"],
+            "required": ["calculation_id", "input"],
         },
         handler=execute_calculation_handler,
     ),
