@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable
 
-from app.mcp.tools.evaluate_expression import evaluate_expression_tool
+from app.mcp.tools.calculate_expression import calculate_expression_tool
 from app.mcp.tools.execute_calculation import execute_calculation_tool
 from app.mcp.tools.get_calculation_details import get_calculation_details_tool
 from app.mcp.tools.list_calculations import list_calculations_tool
@@ -19,8 +19,8 @@ class MCPToolSpec:
     handler: ToolHandler
 
 
-def evaluate_expression_handler(expression: str) -> dict[str, object]:
-    return evaluate_expression_tool(expression=expression)
+def calculate_expression_handler(expression: str) -> dict[str, object]:
+    return calculate_expression_tool(expression=expression)
 
 
 def list_calculations_handler() -> dict[str, object]:
@@ -37,8 +37,8 @@ def execute_calculation_handler(calculation_id: str, input: dict[str, object]) -
 
 TOOL_SPECS: tuple[MCPToolSpec, ...] = (
     MCPToolSpec(
-        name="evaluate_expression",
-        description="Evaluate a mathematical expression safely",
+        name="calculate_expression",
+        description="Calculate a mathematical expression safely",
         input_schema={
             "type": "object",
             "properties": {
@@ -49,7 +49,7 @@ TOOL_SPECS: tuple[MCPToolSpec, ...] = (
             },
             "required": ["expression"],
         },
-        handler=evaluate_expression_handler,
+        handler=calculate_expression_handler,
     ),
     MCPToolSpec(
         name="list_calculations",
