@@ -89,3 +89,37 @@ def test_execute_calculation_rejects_currency_enum() -> None:
     assert payload["ok"] is False
     assert payload["error"]["code"] == "VALIDATION_ERROR"
     assert payload["error"]["details"][0]["code"] == "invalid_enum"
+
+
+def test_execute_calculation_rejects_average_empty_list() -> None:
+    executor = CalculationExecutor(get_registry())
+
+    payload = executor.execute_calculation("average", {"values": []})
+
+    assert payload["ok"] is False
+    assert payload["error"]["code"] == "VALIDATION_ERROR"
+    assert payload["error"]["details"][0]["field"] == "values"
+
+
+def test_execute_calculation_rejects_rule_of_three_with_zero_a() -> None:
+    executor = CalculationExecutor(get_registry())
+
+    payload = executor.execute_calculation("rule_of_three", {"a": 0, "b": 4, "c": 5})
+
+    assert payload["ok"] is False
+    assert payload["error"]["code"] == "VALIDATION_ERROR"
+    assert payload["error"]["details"][0]["code"] == "invalid_value"
+
+
+def test_execute_calculation_returns_full_object_for_vat_calculation() -> None:
+    executor = CalculationExecutor(get_registry())
+
+    payload = executor.execute_calculation("vat_calculation", {"net_amount": 100, "vat_rate": 19})
+
+    assert payload["ok"] is True
+    assert payload["result"] == {
+        "net_amount": 100.0,
+        "vat_rate": 19.0,
+        "vat_amount": 19.0,
+        "gross_amount": 119.0,
+    }

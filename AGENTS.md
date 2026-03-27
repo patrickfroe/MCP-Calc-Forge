@@ -14,7 +14,8 @@ Implementiere einen MCP-Server in Python für Berechnungen.
 - kein eval() für Expressions
 
 # Qualitätsregeln
-- für jede neue Berechnung mindestens ein Unit-Test
+- jede neue Berechnung muss automatisierte Tests enthalten (Happy Path + relevante Edge-/Fehlerfälle)
+- keine neue Berechnung ohne gleichzeitige Erweiterung der Testabdeckung
 - Fehler immer im einheitlichen Fehlerformat zurückgeben
 - nur minimal notwendige Änderungen vornehmen
 - bei komplexeren Tasks zuerst einen Plan erstellen
