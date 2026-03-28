@@ -9,6 +9,10 @@ Python-MCP-Server für Berechnungen mit klar getrennter Architektur:
 - **Expression Engine** getrennt von benannten Berechnungen
 - **MCP Tool Layer** mit genau vier Tools
 
+## Nutzerdokumentation
+
+- Für eine anwendungsorientierte Übersicht (für Endnutzer/Fachanwender) siehe `docs/nutzeruebersicht.md`.
+
 ## MCP-Tools
 
 Der Server registriert vier Tools:
