@@ -20,6 +20,8 @@ Implementiere einen MCP-Server in Python für Berechnungen.
 - nur minimal notwendige Änderungen vornehmen
 - bei komplexeren Tasks zuerst einen Plan erstellen
 
+- Every new calculator must include automated tests covering at least the happy path and relevant edge/error cases.
+
 # Done when
 - 4 MCP-Tools vorhanden
 - mindestens 3 Beispielberechnungen implementiert
