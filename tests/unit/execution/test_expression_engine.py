@@ -27,3 +27,12 @@ def test_expression_engine_rejects_division_by_zero() -> None:
 
     assert payload["ok"] is False
     assert payload["error"]["code"] == "INVALID_EXPRESSION"
+
+
+def test_expression_engine_rejects_non_finite_result() -> None:
+    engine = ExpressionEngine()
+
+    payload = engine.evaluate("1e308 * 1e308")
+
+    assert payload["ok"] is False
+    assert payload["error"]["code"] == "INVALID_EXPRESSION"

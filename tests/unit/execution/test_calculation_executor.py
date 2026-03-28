@@ -111,6 +111,16 @@ def test_execute_calculation_rejects_rule_of_three_with_zero_a() -> None:
     assert payload["error"]["details"][0]["code"] == "invalid_value"
 
 
+def test_execute_calculation_rejects_non_finite_numbers() -> None:
+    executor = CalculationExecutor(get_registry())
+
+    payload = executor.execute_calculation("percentage_of_value", {"base_value": float("inf"), "percentage": 10})
+
+    assert payload["ok"] is False
+    assert payload["error"]["code"] == "VALIDATION_ERROR"
+    assert payload["error"]["details"][0]["code"] == "invalid_number"
+
+
 def test_execute_calculation_returns_full_object_for_vat_calculation() -> None:
     executor = CalculationExecutor(get_registry())
 

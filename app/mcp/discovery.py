@@ -17,6 +17,7 @@ def build_discovery_payload() -> dict[str, object]:
                 "name": spec.name,
                 "description": spec.description,
                 "inputSchema": spec.input_schema,
+                "outputSchema": spec.output_schema,
             }
             for spec in TOOL_SPECS
         ],
