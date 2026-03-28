@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 from app.calculations.models import CalculationDefinition, InputField
 from app.validation.errors import FieldError
 
@@ -109,12 +111,26 @@ class CalculationValidator:
                 expected="list[number]",
             )
 
+        if any(not math.isfinite(float(item)) for item in value):
+            return FieldError(
+                field=field.name,
+                code="invalid_number",
+                message=f"Feld '{field.name}' darf keine NaN- oder Infinity-Werte enthalten.",
+            )
+
         return None
 
     @staticmethod
     def _validate_range(field: InputField, value: object) -> FieldError | None:
         if isinstance(value, bool) or not isinstance(value, (int, float)):
             return None
+
+        if not math.isfinite(float(value)):
+            return FieldError(
+                field=field.name,
+                code="invalid_number",
+                message=f"Feld '{field.name}' darf kein NaN- oder Infinity-Wert sein.",
+            )
 
         if field.min_value is not None and value < field.min_value:
             return FieldError(

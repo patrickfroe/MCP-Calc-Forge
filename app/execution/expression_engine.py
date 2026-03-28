@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import math
 
 from app.validation.errors import error_response
 from app.validation.expression_validator import ExpressionValidator
@@ -28,6 +29,12 @@ class ExpressionEngine:
             return error_response(
                 code="INVALID_EXPRESSION",
                 message="Division durch 0 ist nicht erlaubt.",
+            )
+
+        if not math.isfinite(value):
+            return error_response(
+                code="INVALID_EXPRESSION",
+                message="Expression ergibt keinen endlichen numerischen Wert.",
             )
 
         return {"ok": True, "result": {"value": value}}

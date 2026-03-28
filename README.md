@@ -20,6 +20,19 @@ Der Server registriert vier Tools:
 
 Implementierung: `app/mcp/server.py`.
 
+### Tool-Contract Hinweise
+
+- `calculate_expression` akzeptiert nur Zahlen, Klammern und die Operatoren `+ - * /` (keine Namen/Funktionsaufrufe).
+- Das Feld `expression` ist im Schema als nicht-leerer String mit maximal 500 Zeichen definiert.
+- `execute_calculation` sollte nach `get_calculation_details` verwendet werden, um Pflichtfelder und Constraints vorab zu kennen.
+
+### Numerik-Policy
+
+- Berechnungen verwenden Python-`float` für numerische Ausführung.
+- Eingaben müssen endliche Zahlen sein: `NaN`, `Infinity` und `-Infinity` werden als Validierungsfehler abgelehnt.
+- Auch Expressions müssen einen endlichen numerischen Wert liefern (kein `Infinity`).
+- Rundung erfolgt nicht global zentral; falls nötig, sollte die konsumierende Anwendung Ergebnisse fachlich passend runden.
+
 ## Projektstruktur
 
 ```text
@@ -61,7 +74,15 @@ Zusätzlich zur normalen MCP-Nutzung (STDIO) gibt es einen gemeinsamen HTTP-Endp
 - `GET /api/v1/mcp` liefert die Discovery-JSON mit `name`, `version`, `description`, `tools[]`
 - `POST /api/v1/mcp` verarbeitet MCP-JSON-RPC-Anfragen (Streamable HTTP)
 - Tool-Metadaten werden zentral in `app/mcp/tool_specs.py` gepflegt und sowohl für MCP-Registrierung als auch Discovery wiederverwendet.
+- Discovery enthält pro Tool sowohl `inputSchema` als auch `outputSchema`.
 - Falls ein Client `Accept: text/event-stream` nutzt, wird der Request an den MCP-Transport weitergereicht (keine Discovery-JSON).
+
+### Protokollverhalten (HTTP)
+
+- MCP-POST-Requests sollen `Accept: application/json, text/event-stream` senden.
+- `initialize` liefert die vereinbarte `protocolVersion` sowie Server-Capabilities im JSON-RPC-Result.
+- Ungültige Request-Parameter werden als JSON-RPC-Fehler `-32602` zurückgegeben.
+- Malformed JSON wird mit Parse-Error `-32700` beantwortet.
 
 Start des HTTP-Servers (lokal):
 
@@ -69,10 +90,56 @@ Start des HTTP-Servers (lokal):
 python -m app.mcp.discovery_http
 ```
 
+Optionale Authentifizierung für `POST /api/v1/mcp` kann per Environment-Variablen aktiviert werden:
+
+```bash
+export MCP_AUTH_ENABLED=true
+export MCP_AUTH_TOKEN="change-me"
+python -m app.mcp.discovery_http
+```
+
+Wenn `MCP_AUTH_ENABLED=true` gesetzt ist, muss der Header `Authorization: Bearer <MCP_AUTH_TOKEN>` bei MCP-POST-Requests mitgesendet werden.
+
+Optionale Abuse-Guard (Request-Größe) per Environment-Variablen:
+
+```bash
+export MCP_ABUSE_GUARD_ENABLED=true
+export MCP_MAX_REQUEST_BYTES=65536
+```
+
+Optionale Rate-Limitierung per Environment-Variablen:
+
+```bash
+export MCP_RATE_LIMIT_ENABLED=true
+export MCP_RATE_LIMIT_REQUESTS=60
+export MCP_RATE_LIMIT_WINDOW_SECONDS=60
+```
+
+Optionale Timeout-Guardrail per Environment-Variablen:
+
+```bash
+export MCP_TIMEOUT_ENABLED=true
+export MCP_REQUEST_TIMEOUT_SECONDS=10
+```
+
+Request-Logging für den MCP-HTTP-Endpoint ist standardmäßig aktiv (`MCP_REQUEST_LOG_ENABLED=true`) und kann optional deaktiviert werden:
+
+```bash
+export MCP_REQUEST_LOG_ENABLED=false
+```
+
+Optionale Origin-Allowlist-Validierung:
+
+```bash
+export MCP_ORIGIN_VALIDATION_ENABLED=true
+export MCP_ALLOWED_ORIGINS="https://app.example.com,https://admin.example.com"
+```
+
 ## Voraussetzungen
 
 - Python 3.10+
 - `fastmcp`
+- Abhängigkeiten sind in `requirements.txt` auf getestete Versionen gepinnt.
 
 Installation:
 

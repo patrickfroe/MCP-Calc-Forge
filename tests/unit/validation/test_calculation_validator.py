@@ -79,3 +79,34 @@ def test_validator_number_list_requires_values() -> None:
 
     assert errors[0].code == "invalid_value"
     assert errors[0].field == "values"
+
+
+def test_validator_rejects_infinite_number() -> None:
+    validator = CalculationValidator()
+
+    errors = validator.validate(_build_definition(), {"amount": float("inf"), "mode": "a"})
+
+    assert errors
+    assert errors[0].code == "invalid_number"
+    assert errors[0].field == "amount"
+
+
+def test_validator_rejects_nan_in_number_list() -> None:
+    validator = CalculationValidator()
+    definition = CalculationDefinition(
+        id="avg",
+        name="Average",
+        description="desc",
+        llm_usage_hint="hint",
+        input_fields=(InputField(name="values", field_type="number_list", description="Values"),),
+        output_description="out",
+        output_type="number",
+        examples=(CalculationExample(title="ex", input={"values": [1, 2]}),),
+        execute=lambda payload: 0,
+    )
+
+    errors = validator.validate(definition, {"values": [1.0, float("nan")]})
+
+    assert errors
+    assert errors[0].code == "invalid_number"
+    assert errors[0].field == "values"
