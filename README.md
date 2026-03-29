@@ -12,6 +12,7 @@ Python-MCP-Server für Berechnungen mit klar getrennter Architektur:
 ## Nutzerdokumentation
 
 - Für eine anwendungsorientierte Übersicht (für Endnutzer/Fachanwender) siehe `docs/nutzeruebersicht.md`.
+- Für eine kompakte FAQ-Seite (typische Anwenderfragen) siehe `docs/faq.md`.
 
 ## MCP-Tools
 
