@@ -15,6 +15,13 @@ Typischer Ablauf:
 
 ---
 
+
+## FAQ
+
+- Eine kompakte Fragen-und-Antworten-Seite für Anwender finden Sie in `docs/faq.md`.
+
+---
+
 ## 1) Kurze Einführung
 
 ### Was kann die Applikation?
