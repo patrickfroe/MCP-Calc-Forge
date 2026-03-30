@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable
 
 from app.mcp.tools.calculate_expression import calculate_expression_tool
 from app.mcp.tools.execute_calculation import execute_calculation_tool
 from app.mcp.tools.get_calculation_details import get_calculation_details_tool
 from app.mcp.tools.list_calculations import list_calculations_tool
+from app.mcp.tools.ui_get_calculation_preview import ui_get_calculation_preview_tool
 
 ToolHandler = Callable[..., dict[str, object]]
 
@@ -18,6 +19,7 @@ class MCPToolSpec:
     input_schema: dict[str, object]
     output_schema: dict[str, object]
     handler: ToolHandler
+    meta: dict[str, object] = field(default_factory=dict)
 
 
 def calculate_expression_handler(expression: str) -> dict[str, object]:
@@ -34,6 +36,10 @@ def get_calculation_details_handler(calculation_id: str) -> dict[str, object]:
 
 def execute_calculation_handler(calculation_id: str, input: dict[str, object]) -> dict[str, object]:
     return execute_calculation_tool(calculation_id=calculation_id, inputs=input)
+
+
+def ui_get_calculation_preview_handler(calculation_id: str) -> dict[str, object]:
+    return ui_get_calculation_preview_tool(calculation_id=calculation_id)
 
 
 TOOL_SPECS: tuple[MCPToolSpec, ...] = (
@@ -116,6 +122,14 @@ TOOL_SPECS: tuple[MCPToolSpec, ...] = (
             "additionalProperties": True,
         },
         handler=list_calculations_handler,
+        meta={
+            "_meta": {
+                "ui": {
+                    "resourceUri": "ui://calculations/list",
+                    "visibility": ["model", "app"],
+                }
+            }
+        },
     ),
     MCPToolSpec(
         name="get_calculation_details",
@@ -147,6 +161,53 @@ TOOL_SPECS: tuple[MCPToolSpec, ...] = (
             "additionalProperties": True,
         },
         handler=get_calculation_details_handler,
+        meta={
+            "_meta": {
+                "ui": {
+                    "resourceUri": "ui://calculations/list",
+                    "visibility": ["model", "app"],
+                }
+            }
+        },
+    ),
+    MCPToolSpec(
+        name="ui_get_calculation_preview",
+        description="App-only helper tool that returns compact preview metadata for a calculation.",
+        input_schema={
+            "type": "object",
+            "title": "UiGetCalculationPreviewInput",
+            "properties": {
+                "calculation_id": {
+                    "type": "string",
+                    "description": "Unique identifier of the calculation",
+                    "minLength": 1,
+                }
+            },
+            "required": ["calculation_id"],
+            "additionalProperties": False,
+        },
+        output_schema={
+            "type": "object",
+            "title": "UiGetCalculationPreviewOutput",
+            "properties": {
+                "ok": {"type": "boolean"},
+                "result": {"type": "object"},
+                "structuredContent": {"type": "object"},
+                "content": {"type": "array"},
+                "error": {"type": "object"},
+            },
+            "required": ["ok"],
+            "additionalProperties": True,
+        },
+        handler=ui_get_calculation_preview_handler,
+        meta={
+            "_meta": {
+                "ui": {
+                    "resourceUri": "ui://calculations/list",
+                    "visibility": ["app"],
+                }
+            }
+        },
     ),
     MCPToolSpec(
         name="execute_calculation",
