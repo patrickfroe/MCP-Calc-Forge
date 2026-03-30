@@ -111,6 +111,10 @@ Start des HTTP-Servers (lokal):
 python -m app.mcp.discovery_http
 ```
 
+Für einen direkten Browser-UI-Test (Dev/Preview) kann anschließend aufgerufen werden:
+
+- `GET http://127.0.0.1:8090/ui/preview`
+
 Optionale Authentifizierung für `POST /api/v1/mcp` kann per Environment-Variablen aktiviert werden:
 
 ```bash

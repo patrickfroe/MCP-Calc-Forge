@@ -4,7 +4,7 @@ import json
 from starlette.testclient import TestClient
 
 from app.mcp.discovery import build_discovery_payload
-from app.mcp.discovery_http import MCP_HTTP_PATH, create_combined_http_app
+from app.mcp.discovery_http import MCP_HTTP_PATH, UI_PREVIEW_PATH, create_combined_http_app
 
 
 def _extract_sse_data_payload(response_text: str) -> dict[str, object]:
@@ -73,6 +73,20 @@ def test_discovery_http_endpoint_returns_discovery_json() -> None:
         names = {tool["name"] for tool in payload["tools"]}
         assert "calculate_expression" in names
         assert "evaluate_expression" not in names
+
+
+def test_ui_preview_route_returns_calculation_list_html() -> None:
+    app = create_combined_http_app()
+    with TestClient(app) as client:
+        response = client.get(UI_PREVIEW_PATH)
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/html")
+    html = response.text
+    assert "<h1>Calculations</h1>" in html
+    assert "Waiting for tool result" in html
+    assert "tool-call-request" in html
+    assert "get_calculation_details" in html
 
 
 def test_mcp_post_requests_are_processed_on_same_endpoint() -> None:

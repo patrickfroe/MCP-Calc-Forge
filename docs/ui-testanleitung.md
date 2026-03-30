@@ -97,9 +97,12 @@ Erwartung:
 
 ## 4) UI im Browser öffnen
 
-Wichtig: Es gibt im Projekt **keine direkte HTTP-Route**, die die UI-HTML direkt als Seite ausliefert (also kein `/ui/...` oder `/` für diese View).
+Für lokale Tests gibt es eine direkte Preview-Route:
 
-Die UI wird als MCP-Resource `ui://calculations/list` bereitgestellt und ist für eine **Host-Integration** gedacht.
+- `GET /ui/preview`
+- Beispiel: `http://127.0.0.1:8090/ui/preview`
+
+Die Route rendert dieselbe UI wie die MCP-Resource `ui://calculations/list`, damit Rendering und Interaktionen im Browser schneller geprüft werden können.
 
 ### 4.1 UI-HTML über MCP laden (technischer Vorcheck)
 
@@ -141,22 +144,13 @@ Erwartung:
 - `result.contents[0].mimeType = "text/html"`
 - `result.contents[0].text` enthält HTML mit `Waiting for tool result…`, `tool-result`, `tool-call-request`.
 
-### 4.2 Browser-Test lokal mit der vorhandenen UI-Datei (ohne zusätzliche Implementierung)
+### 4.2 Direkter Browser-Aufruf über die Preview-Route
 
-Da keine dedizierte Host-Testseite im Repo vorhanden ist, kann die vorhandene Datei `app/mcp/ui/list_calculations.html` direkt im Browser geöffnet werden.
+Nach dem Start des Servers kann die UI direkt geöffnet werden:
 
-```bash
-python -m http.server 5500
-```
+- `http://127.0.0.1:8090/ui/preview`
 
-Dann im Browser öffnen:
-
-- `http://127.0.0.1:5500/app/mcp/ui/list_calculations.html`
-
-**Warum das funktioniert:**  
-Die View akzeptiert nur Messages von `window.parent`. Wenn sie direkt (Top-Level) geöffnet wird, ist `window.parent === window`; `postMessage`-Tests sind damit in DevTools möglich.
-
-Wenn eine echte Host-Umgebung verfügbar ist, sollte zusätzlich dort `ui://calculations/list` gerendert werden (integrationsnaher Test).
+Hinweis: Die View bleibt host-orientiert (`window.parent.postMessage(...)`) und ist daher weiterhin kompatibel zur MCP-Host-Integration. Für schnelle lokale Render-/DOM-Checks ist die Preview-Route aber der einfachste Einstieg.
 
 ---
 
