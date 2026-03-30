@@ -7,12 +7,13 @@ Python-MCP-Server für Berechnungen mit klar getrennter Architektur:
 - **Validation Layer** für Eingabeprüfung und einheitliche Fehler
 - **Execution Layer** für Ausführung benannter Berechnungen
 - **Expression Engine** getrennt von benannten Berechnungen
-- **MCP Tool Layer** mit genau vier Tools
+- **MCP Tool Layer** mit fünf Tools (inkl. app-only UI-Helper)
 
 ## Nutzerdokumentation
 
 - Für eine anwendungsorientierte Übersicht (für Endnutzer/Fachanwender) siehe `docs/nutzeruebersicht.md`.
 - Für eine kompakte FAQ-Seite (typische Anwenderfragen) siehe `docs/faq.md`.
+- Für die UI-/MCP-Apps-Testschritte siehe `docs/ui-testanleitung.md`.
 
 ## MCP-Tools
 
