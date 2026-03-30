@@ -7,21 +7,23 @@ Python-MCP-Server für Berechnungen mit klar getrennter Architektur:
 - **Validation Layer** für Eingabeprüfung und einheitliche Fehler
 - **Execution Layer** für Ausführung benannter Berechnungen
 - **Expression Engine** getrennt von benannten Berechnungen
-- **MCP Tool Layer** mit genau vier Tools
+- **MCP Tool Layer** mit fünf Tools (inkl. app-only UI-Helper)
 
 ## Nutzerdokumentation
 
 - Für eine anwendungsorientierte Übersicht (für Endnutzer/Fachanwender) siehe `docs/nutzeruebersicht.md`.
 - Für eine kompakte FAQ-Seite (typische Anwenderfragen) siehe `docs/faq.md`.
+- Für die UI-/MCP-Apps-Testschritte siehe `docs/ui-testanleitung.md`.
 
 ## MCP-Tools
 
-Der Server registriert vier Tools:
+Der Server registriert fünf Tools:
 
 1. `calculate_expression`
 2. `list_calculations`
 3. `get_calculation_details`
-4. `execute_calculation`
+4. `ui_get_calculation_preview` (app-only helper)
+5. `execute_calculation`
 
 Implementierung: `app/mcp/server.py`.
 
@@ -30,6 +32,20 @@ Implementierung: `app/mcp/server.py`.
 - `calculate_expression` akzeptiert nur Zahlen, Klammern und die Operatoren `+ - * /` (keine Namen/Funktionsaufrufe).
 - Das Feld `expression` ist im Schema als nicht-leerer String mit maximal 500 Zeichen definiert.
 - `execute_calculation` sollte nach `get_calculation_details` verwendet werden, um Pflichtfelder und Constraints vorab zu kennen.
+
+### MCP Apps Visibility (aktueller Stand)
+
+- `list_calculations`: `visibility=["model","app"]`, verknüpft mit `ui://calculations/list`
+- `get_calculation_details`: `visibility=["model","app"]`, verknüpft mit `ui://calculations/list`
+- `ui_get_calculation_preview`: `visibility=["app"]`, verknüpft mit `ui://calculations/list` als UI-Helfer ohne eigene Business-Logik.
+
+### MCP Apps Progressive Enhancement & UI Lifecycle
+
+- **Progressive Enhancement:** Tools bleiben ohne UI vollständig nutzbar; UI-bezogene Felder (`meta`, `structuredContent`, `content`) sind additive Erweiterungen.
+- **Host-Rendered View:** `ui://calculations/list` ist als Host-View gedacht und erwartet Tool-Result-Events.
+- **Interaktivität:** Die View kann über Host-Messages Tool-Aufrufe anfordern (z. B. `get_calculation_details`), ohne Business-Logik im Frontend zu duplizieren.
+- **Theming / Host Context / Display Modes:** Die UI-Resource-Metadaten deklarieren Host-Theme-Unterstützung, Locale/Timezone-Context und unterstützte Display-Modes.
+- **Lifecycle-Hinweise:** Metadaten enthalten deklarative Init/Update/Teardown-Events für Host-Integration.
 
 ### Numerik-Policy
 

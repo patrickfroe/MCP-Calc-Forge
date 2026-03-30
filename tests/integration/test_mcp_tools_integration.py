@@ -11,31 +11,64 @@ from app.mcp.tools.calculate_expression import calculate_expression_tool
 from app.mcp.tools.execute_calculation import execute_calculation_tool
 from app.mcp.tools.get_calculation_details import get_calculation_details_tool
 from app.mcp.tools.list_calculations import list_calculations_tool
+from app.mcp.tools.ui_get_calculation_preview import ui_get_calculation_preview_tool
 
 
 def test_mcp_server_registers_all_four_tools() -> None:
     server = create_mcp_server()
 
     tools = asyncio.run(server.list_tools())
+    resources = asyncio.run(server.list_resources())
     names = {tool.name for tool in tools}
+    by_name = {tool.name: tool for tool in tools}
+    resources_by_uri = {str(resource.uri): resource for resource in resources}
 
     assert names == {
         "calculate_expression",
         "list_calculations",
         "get_calculation_details",
+        "ui_get_calculation_preview",
         "execute_calculation",
     }
+    assert by_name["list_calculations"].meta == {
+        "_meta": {"ui": {"resourceUri": "ui://calculations/list", "visibility": ["model", "app"]}}
+    }
+    assert by_name["get_calculation_details"].meta == {
+        "_meta": {"ui": {"resourceUri": "ui://calculations/list", "visibility": ["model", "app"]}}
+    }
+    assert by_name["ui_get_calculation_preview"].meta == {
+        "_meta": {"ui": {"resourceUri": "ui://calculations/list", "visibility": ["app"]}}
+    }
+    assert by_name["execute_calculation"].output_schema["properties"]["calculation_id"]["type"] == "string"
+    assert "ui://calculations/list" in resources_by_uri
+    resource_ui_meta = resources_by_uri["ui://calculations/list"].meta["_meta"]["ui"]
+    assert resource_ui_meta["csp"] == {"connectDomains": [], "resourceDomains": []}
+    assert resource_ui_meta["displayModes"] == ["inline", "fullscreen"]
+    assert resource_ui_meta["theming"] == {"supportsHostTheme": True}
 
 
 def test_list_calculations_and_get_details_end_to_end() -> None:
     list_payload = list_calculations_tool()
     assert list_payload["ok"] is True
     assert len(list_payload["result"]["calculations"]) == 14
+    assert list_payload["structuredContent"] == list_payload["result"]
+    assert list_payload["content"][0]["type"] == "text"
+    assert "calculations available" in list_payload["content"][0]["text"]
 
     details_payload = get_calculation_details_tool("loan_annuity_payment")
     assert details_payload["ok"] is True
     assert details_payload["result"]["id"] == "loan_annuity_payment"
     assert details_payload["result"]["output_type"] == "object"
+
+
+def test_list_calculations_progressive_enhancement_keeps_legacy_result_contract() -> None:
+    payload = list_calculations_tool()
+    legacy_result = payload["result"]
+
+    assert "calculations" in legacy_result
+    assert isinstance(legacy_result["calculations"], list)
+    first = legacy_result["calculations"][0]
+    assert {"id", "name", "description", "llm_usage_hint"}.issubset(first.keys())
 
 
 def test_execute_calculation_and_expression_end_to_end() -> None:
@@ -49,6 +82,14 @@ def test_execute_calculation_and_expression_end_to_end() -> None:
     expr_payload = calculate_expression_tool("(2 + 3) * 5")
     assert expr_payload["ok"] is True
     assert expr_payload["result"]["value"] == 25
+
+
+def test_ui_get_calculation_preview_app_only_helper() -> None:
+    payload = ui_get_calculation_preview_tool("loan_annuity_payment")
+    assert payload["ok"] is True
+    assert payload["result"]["id"] == "loan_annuity_payment"
+    assert payload["structuredContent"]["id"] == "loan_annuity_payment"
+    assert payload["content"][0]["type"] == "text"
 
 
 def test_tools_return_structured_errors() -> None:

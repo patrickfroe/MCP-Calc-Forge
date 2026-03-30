@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Calculations</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      main {
+        padding: 1rem;
+      }
+      ul {
+        padding-left: 1.25rem;
+      }
+      .muted {
+        opacity: 0.75;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Calculations</h1>
+      <p class="muted" id="status">Waiting for tool result…</p>
+      <ul id="calculation-list"></ul>
+      <section id="details" hidden>
+        <h2>Calculation details</h2>
+        <p id="details-name" class="muted"></p>
+        <pre id="details-json"></pre>
+      </section>
+    </main>
+    <script>
+      const statusEl = document.getElementById("status");
+      const listEl = document.getElementById("calculation-list");
+      const detailsEl = document.getElementById("details");
+      const detailsNameEl = document.getElementById("details-name");
+      const detailsJsonEl = document.getElementById("details-json");
+
+      function requestCalculationDetails(calculationId) {
+        if (!calculationId) return;
+        window.parent.postMessage(
+          {
+            type: "tool-call-request",
+            toolName: "get_calculation_details",
+            arguments: { calculation_id: calculationId }
+          },
+          "*"
+        );
+      }
+
+      function renderCalculations(payload) {
+        const calculations = payload?.calculations ?? [];
+        listEl.innerHTML = "";
+        for (const item of calculations) {
+          const li = document.createElement("li");
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = `${item.id}: ${item.name}`;
+          button.addEventListener("click", () => requestCalculationDetails(item.id));
+          li.appendChild(button);
+          listEl.appendChild(li);
+        }
+        statusEl.textContent = `${calculations.length} calculation(s) loaded.`;
+      }
+
+      function renderDetails(payload) {
+        const details = payload ?? {};
+        detailsEl.hidden = false;
+        detailsNameEl.textContent = `${details.id ?? "unknown"} — ${details.name ?? ""}`;
+        detailsJsonEl.textContent = JSON.stringify(details, null, 2);
+      }
+
+      window.addEventListener("message", (event) => {
+        if (event.source !== window.parent) return;
+        if (!event.data || typeof event.data !== "object") return;
+        const data = event.data;
+        if (data.type !== "tool-result") return;
+        const structured = data.structuredContent ?? data.result ?? {};
+        if (data.toolName === "get_calculation_details") {
+          renderDetails(structured);
+          return;
+        }
+        renderCalculations(structured);
+      });
+    </script>
+  </body>
+</html>

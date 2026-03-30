@@ -29,6 +29,7 @@ def test_build_discovery_payload_contains_server_metadata_and_tool_schemas() -> 
         "calculate_expression",
         "list_calculations",
         "get_calculation_details",
+        "ui_get_calculation_preview",
         "execute_calculation",
     }.issubset(by_name.keys())
 
@@ -45,6 +46,12 @@ def test_build_discovery_payload_contains_server_metadata_and_tool_schemas() -> 
     assert by_name["execute_calculation"]["inputSchema"]["additionalProperties"] is False
     assert by_name["get_calculation_details"]["inputSchema"]["additionalProperties"] is False
     assert by_name["calculate_expression"]["inputSchema"]["additionalProperties"] is False
+    assert by_name["list_calculations"]["meta"]["_meta"]["ui"]["resourceUri"] == "ui://calculations/list"
+    assert by_name["list_calculations"]["meta"]["_meta"]["ui"]["visibility"] == ["model", "app"]
+    assert by_name["get_calculation_details"]["meta"]["_meta"]["ui"]["resourceUri"] == "ui://calculations/list"
+    assert by_name["get_calculation_details"]["meta"]["_meta"]["ui"]["visibility"] == ["model", "app"]
+    assert by_name["ui_get_calculation_preview"]["meta"]["_meta"]["ui"]["resourceUri"] == "ui://calculations/list"
+    assert by_name["ui_get_calculation_preview"]["meta"]["_meta"]["ui"]["visibility"] == ["app"]
     assert by_name["list_calculations"]["outputSchema"]["properties"]["result"]["properties"]["calculations"]["items"][
         "required"
     ] == ["id", "name", "description", "llm_usage_hint"]

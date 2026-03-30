@@ -8,6 +8,7 @@ from fastmcp import FastMCP
 
 from app.mcp.discovery import SERVER_DESCRIPTION, SERVER_NAME
 from app.mcp.tool_specs import TOOL_SPECS
+from app.mcp.ui_resources import register_ui_resources
 
 
 LOGGER = logging.getLogger("app.mcp.server")
@@ -23,7 +24,15 @@ def create_mcp_server() -> FastMCP:
     mcp = FastMCP(SERVER_NAME)
 
     for spec in TOOL_SPECS:
-        mcp.tool(spec.handler, name=spec.name, description=spec.description)
+        mcp.tool(
+            spec.handler,
+            name=spec.name,
+            description=spec.description,
+            output_schema=spec.output_schema,
+            meta=spec.meta or None,
+        )
+
+    register_ui_resources(mcp)
 
     return mcp
 
