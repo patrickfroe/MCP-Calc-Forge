@@ -11,14 +11,16 @@ from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import JSONResponse, Response
-from starlette.routing import Mount
+from starlette.responses import HTMLResponse, JSONResponse, Response
+from starlette.routing import Mount, Route
 
 from app.mcp.discovery import build_discovery_payload
 from app.mcp.server import create_mcp_server
+from app.mcp.ui_resources import get_ui_resource_specs
 
 
 MCP_HTTP_PATH = "/api/v1/mcp"
+UI_PREVIEW_PATH = "/ui/preview"
 LOGGER = logging.getLogger("app.mcp.discovery_http")
 if not LOGGER.handlers:
     handler = logging.StreamHandler(stream=sys.stderr)
@@ -250,14 +252,32 @@ def create_combined_http_app(path: str = MCP_HTTP_PATH) -> Starlette:
             raise ValueError("MCP_ALLOWED_ORIGINS must be set when MCP_ORIGIN_VALIDATION_ENABLED is true.")
         middleware.append(Middleware(MCPOriginValidationMiddleware, allowed_origins=allowed_origins, path=path))
 
+    ui_preview_html = _build_ui_preview_html()
     app = Starlette(
-        routes=[Mount("/", app=mcp_http_app)],
+        routes=[
+            Route(UI_PREVIEW_PATH, endpoint=_ui_preview_route(ui_preview_html), methods=["GET"]),
+            Mount("/", app=mcp_http_app),
+        ],
         middleware=middleware,
         lifespan=mcp_http_app.router.lifespan_context,
     )
     app.state.fastmcp_server = mcp
     app.state.path = path
     return app
+
+
+def _build_ui_preview_html() -> str:
+    for resource in get_ui_resource_specs():
+        if resource.uri == "ui://calculations/list":
+            return resource.loader()
+    raise ValueError("UI resource ui://calculations/list is not registered.")
+
+
+def _ui_preview_route(ui_preview_html: str):
+    async def _endpoint(_: Request) -> Response:
+        return HTMLResponse(ui_preview_html)
+
+    return _endpoint
 
 
 def run_discovery_http_server(host: str = "127.0.0.1", port: int = 8090) -> None:
