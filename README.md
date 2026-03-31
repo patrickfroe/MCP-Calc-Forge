@@ -180,6 +180,12 @@ pip install -r requirements.txt
 python -m app.mcp.server
 ```
 
+### Claude Desktop (lokaler MCP-Prozess)
+
+- Für Claude Desktop in lokalem Prozessmodus muss der **STDIO-Entrypoint** verwendet werden:
+  - `python -m app.mcp.server`
+- `app.mcp.discovery_http` ist ein separater HTTP-Server (`/api/v1/mcp`, Streamable HTTP) und **kein** STDIO-Entrypoint für den lokalen Prozessmodus von Claude Desktop.
+
 
 ## Tests
 
