@@ -18,6 +18,7 @@ def build_discovery_payload() -> dict[str, object]:
         }
         if spec.meta:
             tool_payload["meta"] = spec.meta
+            tool_payload["_meta"] = spec.meta
         tools.append(tool_payload)
 
     return {

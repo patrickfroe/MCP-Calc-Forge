@@ -24,13 +24,14 @@ def create_mcp_server() -> FastMCP:
     mcp = FastMCP(SERVER_NAME)
 
     for spec in TOOL_SPECS:
-        mcp.tool(
+        registered_tool = mcp.tool(
             spec.handler,
             name=spec.name,
             description=spec.description,
             output_schema=spec.output_schema,
             meta=spec.meta or None,
         )
+        registered_tool.parameters = spec.input_schema
 
     register_ui_resources(mcp)
 

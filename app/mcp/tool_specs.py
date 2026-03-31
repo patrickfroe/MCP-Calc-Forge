@@ -123,11 +123,9 @@ TOOL_SPECS: tuple[MCPToolSpec, ...] = (
         },
         handler=list_calculations_handler,
         meta={
-            "_meta": {
-                "ui": {
-                    "resourceUri": "ui://calculations/list",
-                    "visibility": ["model", "app"],
-                }
+            "ui": {
+                "resourceUri": "ui://calculations/list",
+                "visibility": ["model", "app"],
             }
         },
     ),
@@ -162,11 +160,9 @@ TOOL_SPECS: tuple[MCPToolSpec, ...] = (
         },
         handler=get_calculation_details_handler,
         meta={
-            "_meta": {
-                "ui": {
-                    "resourceUri": "ui://calculations/list",
-                    "visibility": ["model", "app"],
-                }
+            "ui": {
+                "resourceUri": "ui://calculations/list",
+                "visibility": ["model", "app"],
             }
         },
     ),
@@ -201,11 +197,9 @@ TOOL_SPECS: tuple[MCPToolSpec, ...] = (
         },
         handler=ui_get_calculation_preview_handler,
         meta={
-            "_meta": {
-                "ui": {
-                    "resourceUri": "ui://calculations/list",
-                    "visibility": ["app"],
-                }
+            "ui": {
+                "resourceUri": "ui://calculations/list",
+                "visibility": ["app"],
             }
         },
     ),

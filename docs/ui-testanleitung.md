@@ -162,7 +162,7 @@ Hinweis: Die View bleibt host-orientiert (`window.parent.postMessage(...)`) und 
 
 **Erwartung:** Discovery JSON enthält alle Tool-Schemas + UI-Meta.
 
-**Erfolgskriterium:** `resourceUri` für `list_calculations`, `get_calculation_details`, `ui_get_calculation_preview` ist vorhanden.
+**Erfolgskriterium:** `resourceUri` für `list_calculations`, `get_calculation_details`, `ui_get_calculation_preview` ist vorhanden (unter `meta.ui.resourceUri`, optional zusätzlich als Top-Level `_meta.ui.resourceUri`).
 
 ### Schritt 2: MCP-Session initialisieren
 
@@ -179,6 +179,7 @@ Hinweis: Die View bleibt host-orientiert (`window.parent.postMessage(...)`) und 
 **Erwartung:** HTML-Dokument (`mimeType: text/html`) wird geliefert.
 
 **Erfolgskriterium:** HTML enthält IDs `status`, `calculation-list`, `details` und JS-Message-Handling.
+Zusätzlich sollte die View nur Messages vom erwarteten Parent-Origin akzeptieren.
 
 ### Schritt 4: `list_calculations` aufrufen
 

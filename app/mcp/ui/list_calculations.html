@@ -40,6 +40,7 @@
       const detailsEl = document.getElementById("details");
       const detailsNameEl = document.getElementById("details-name");
       const detailsJsonEl = document.getElementById("details-json");
+      const parentOrigin = document.referrer ? new URL(document.referrer).origin : "*";
 
       function requestCalculationDetails(calculationId) {
         if (!calculationId) return;
@@ -49,7 +50,7 @@
             toolName: "get_calculation_details",
             arguments: { calculation_id: calculationId }
           },
-          "*"
+          parentOrigin
         );
       }
 
@@ -77,6 +78,7 @@
 
       window.addEventListener("message", (event) => {
         if (event.source !== window.parent) return;
+        if (parentOrigin !== "*" && event.origin !== parentOrigin) return;
         if (!event.data || typeof event.data !== "object") return;
         const data = event.data;
         if (data.type !== "tool-result") return;

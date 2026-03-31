@@ -14,6 +14,28 @@ def _extract_sse_data_payload(response_text: str) -> dict[str, object]:
     raise AssertionError("No SSE data payload found")
 
 
+def _initialize_session(client: TestClient) -> str:
+    request_body = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "initialize",
+        "params": {
+            "protocolVersion": "2025-03-26",
+            "capabilities": {},
+            "clientInfo": {"name": "pytest-client", "version": "1.0"},
+        },
+    }
+    response = client.post(
+        MCP_HTTP_PATH,
+        json=request_body,
+        headers={"accept": "application/json, text/event-stream"},
+    )
+    assert response.status_code == 200
+    session_id = response.headers.get("mcp-session-id")
+    assert session_id
+    return session_id
+
+
 def test_build_discovery_payload_contains_server_metadata_and_tool_schemas() -> None:
     payload = build_discovery_payload()
 
@@ -46,12 +68,15 @@ def test_build_discovery_payload_contains_server_metadata_and_tool_schemas() -> 
     assert by_name["execute_calculation"]["inputSchema"]["additionalProperties"] is False
     assert by_name["get_calculation_details"]["inputSchema"]["additionalProperties"] is False
     assert by_name["calculate_expression"]["inputSchema"]["additionalProperties"] is False
-    assert by_name["list_calculations"]["meta"]["_meta"]["ui"]["resourceUri"] == "ui://calculations/list"
-    assert by_name["list_calculations"]["meta"]["_meta"]["ui"]["visibility"] == ["model", "app"]
-    assert by_name["get_calculation_details"]["meta"]["_meta"]["ui"]["resourceUri"] == "ui://calculations/list"
-    assert by_name["get_calculation_details"]["meta"]["_meta"]["ui"]["visibility"] == ["model", "app"]
-    assert by_name["ui_get_calculation_preview"]["meta"]["_meta"]["ui"]["resourceUri"] == "ui://calculations/list"
-    assert by_name["ui_get_calculation_preview"]["meta"]["_meta"]["ui"]["visibility"] == ["app"]
+    assert by_name["list_calculations"]["meta"]["ui"]["resourceUri"] == "ui://calculations/list"
+    assert by_name["list_calculations"]["_meta"]["ui"]["resourceUri"] == "ui://calculations/list"
+    assert by_name["list_calculations"]["meta"]["ui"]["visibility"] == ["model", "app"]
+    assert by_name["get_calculation_details"]["meta"]["ui"]["resourceUri"] == "ui://calculations/list"
+    assert by_name["get_calculation_details"]["_meta"]["ui"]["resourceUri"] == "ui://calculations/list"
+    assert by_name["get_calculation_details"]["meta"]["ui"]["visibility"] == ["model", "app"]
+    assert by_name["ui_get_calculation_preview"]["meta"]["ui"]["resourceUri"] == "ui://calculations/list"
+    assert by_name["ui_get_calculation_preview"]["_meta"]["ui"]["resourceUri"] == "ui://calculations/list"
+    assert by_name["ui_get_calculation_preview"]["meta"]["ui"]["visibility"] == ["app"]
     assert by_name["list_calculations"]["outputSchema"]["properties"]["result"]["properties"]["calculations"]["items"][
         "required"
     ] == ["id", "name", "description", "llm_usage_hint"]
@@ -119,6 +144,97 @@ def test_mcp_post_requests_are_processed_on_same_endpoint() -> None:
     assert "tools" in result["capabilities"]
     assert "resources" in result["capabilities"]
     assert "prompts" in result["capabilities"]
+
+
+def test_mcp_resources_read_returns_registered_ui_html() -> None:
+    app = create_combined_http_app()
+    with TestClient(app) as client:
+        session_id = _initialize_session(client)
+        response = client.post(
+            MCP_HTTP_PATH,
+            json={
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "resources/read",
+                "params": {"uri": "ui://calculations/list"},
+            },
+            headers={
+                "accept": "application/json, text/event-stream",
+                "mcp-session-id": session_id,
+            },
+        )
+
+    assert response.status_code == 200
+    payload = _extract_sse_data_payload(response.text)
+    contents = payload["result"]["contents"]
+    assert len(contents) == 1
+    assert contents[0]["uri"] == "ui://calculations/list"
+    assert contents[0]["mimeType"] == "text/html"
+    assert "<h1>Calculations</h1>" in contents[0]["text"]
+    assert "tool-result" in contents[0]["text"]
+
+
+def test_mcp_ui_flow_initialize_tool_call_and_resource_read_is_consistent() -> None:
+    app = create_combined_http_app()
+    with TestClient(app) as client:
+        session_id = _initialize_session(client)
+        tools_list = client.post(
+            MCP_HTTP_PATH,
+            json={
+                "jsonrpc": "2.0",
+                "id": 3,
+                "method": "tools/list",
+                "params": {},
+            },
+            headers={
+                "accept": "application/json, text/event-stream",
+                "mcp-session-id": session_id,
+            },
+        )
+        tools_call = client.post(
+            MCP_HTTP_PATH,
+            json={
+                "jsonrpc": "2.0",
+                "id": 4,
+                "method": "tools/call",
+                "params": {"name": "list_calculations", "arguments": {}},
+            },
+            headers={
+                "accept": "application/json, text/event-stream",
+                "mcp-session-id": session_id,
+            },
+        )
+        resources_read = client.post(
+            MCP_HTTP_PATH,
+            json={
+                "jsonrpc": "2.0",
+                "id": 5,
+                "method": "resources/read",
+                "params": {"uri": "ui://calculations/list"},
+            },
+            headers={
+                "accept": "application/json, text/event-stream",
+                "mcp-session-id": session_id,
+            },
+        )
+
+    assert tools_list.status_code == 200
+    tools_list_payload = _extract_sse_data_payload(tools_list.text)
+    by_name = {tool["name"]: tool for tool in tools_list_payload["result"]["tools"]}
+    assert by_name["list_calculations"]["_meta"]["ui"]["resourceUri"] == "ui://calculations/list"
+
+    assert tools_call.status_code == 200
+    tools_call_payload = _extract_sse_data_payload(tools_call.text)
+    tool_result = tools_call_payload["result"]
+    structured = tool_result["structuredContent"]["structuredContent"]
+    assert "calculations" in structured
+    assert isinstance(structured["calculations"], list)
+
+    assert resources_read.status_code == 200
+    resources_payload = _extract_sse_data_payload(resources_read.text)
+    html = resources_payload["result"]["contents"][0]["text"]
+    assert "Waiting for tool result" in html
+    assert "tool-call-request" in html
 
 
 def test_mcp_post_initialize_with_invalid_params_returns_jsonrpc_error() -> None:
