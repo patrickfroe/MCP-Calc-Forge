@@ -42,7 +42,14 @@ mcp = create_mcp_server()
 
 if __name__ == "__main__":
     LOGGER.info("Starting MCP server")
+    LOGGER.info(
+        "Startup context: executable=%s cwd=%s argv=%s",
+        sys.executable,
+        os.getcwd(),
+        sys.argv,
+    )
     port = int(os.getenv("FASTMCP_PORT", "8080"))
     LOGGER.info("Configured FASTMCP_PORT=%s (stdio transport ignores port)", port)
+    LOGGER.info("Selected transport=stdio (for Claude Desktop local process mode)")
     LOGGER.info("Server description: %s", SERVER_DESCRIPTION)
     mcp.run(transport="stdio")
