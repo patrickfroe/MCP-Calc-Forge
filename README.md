@@ -38,6 +38,7 @@ Implementierung: `app/mcp/server.py`.
 - `list_calculations`: `visibility=["model","app"]`, verknüpft mit `ui://calculations/list`
 - `get_calculation_details`: `visibility=["model","app"]`, verknüpft mit `ui://calculations/list`
 - `ui_get_calculation_preview`: `visibility=["app"]`, verknüpft mit `ui://calculations/list` als UI-Helfer ohne eigene Business-Logik.
+- UI-Metadaten werden serverseitig als `meta.ui` geführt; im Discovery-JSON wird zusätzlich `_meta.ui` auf Top-Level gespiegelt, damit generische Hosts die Resource-Referenz robuster finden.
 
 ### MCP Apps Progressive Enhancement & UI Lifecycle
 
@@ -136,6 +137,7 @@ Zusätzlich zur normalen MCP-Nutzung (STDIO) gibt es einen gemeinsamen HTTP-Endp
 - `initialize` liefert die vereinbarte `protocolVersion` sowie Server-Capabilities im JSON-RPC-Result.
 - Ungültige Request-Parameter werden als JSON-RPC-Fehler `-32602` zurückgegeben.
 - Malformed JSON wird mit Parse-Error `-32700` beantwortet.
+- `resources/read` für `ui://calculations/list` liefert `mimeType: text/html` und die embeddable HTML-View für Host-Renderer (z. B. AppRenderer).
 
 Start des HTTP-Servers (lokal):
 

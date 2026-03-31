@@ -28,3 +28,4 @@ def test_ui_resource_loader_returns_html_document() -> None:
     assert "tool-call-request" in html
     assert "get_calculation_details" in html
     assert "event.source !== window.parent" in html
+    assert "event.origin !== parentOrigin" in html
