@@ -88,6 +88,38 @@ app/
 4. Unit-Tests für Happy Path und Fehlerfälle ergänzen.
 
 
+## Betriebsprofile (Entrypoints)
+
+Der Server bietet zwei bewusst getrennte Betriebsprofile:
+
+### 1) `stdio-profile` (lokaler Prozess)
+
+- **Entrypoint:** `python -m app.mcp.server`
+- **Transport:** MCP über `stdio`
+- **Typischer Einsatz:** Claude Desktop im lokalen Prozessmodus
+- **Hinweis:** `FASTMCP_PORT` kann gesetzt sein, wird bei `stdio` jedoch ignoriert.
+
+### 2) `http-profile` (Netzwerkbetrieb)
+
+- **Entrypoint:** `python -m app.mcp.discovery_http`
+- **Transport:** MCP über Streamable HTTP (`/api/v1/mcp`)
+- **Typischer Einsatz:** Browser-/HTTP-Tests, remote MCP-Anbindung, produktiver HTTP-Betrieb mit optionalen Guardrails
+- **Zusatzfunktionen:** Discovery (`GET /api/v1/mcp`) und UI-Preview (`GET /ui/preview`)
+
+### Betriebsmatrix (Use Case → Entrypoint)
+
+| Use Case | Entrypoint | Transport | Required ENV | Optional ENV |
+| --- | --- | --- | --- | --- |
+| Claude Desktop (lokaler MCP-Prozess) | `python -m app.mcp.server` | `stdio` | keine | `FASTMCP_PORT` (informativ, bei stdio ohne Wirkung) |
+| Browser-Tests / UI-Preview lokal | `python -m app.mcp.discovery_http` | `streamable-http` | keine | `MCP_REQUEST_LOG_ENABLED`, `MCP_AUTH_ENABLED`, `MCP_AUTH_TOKEN`, `MCP_ABUSE_GUARD_ENABLED`, `MCP_MAX_REQUEST_BYTES`, `MCP_RATE_LIMIT_ENABLED`, `MCP_RATE_LIMIT_REQUESTS`, `MCP_RATE_LIMIT_WINDOW_SECONDS`, `MCP_TIMEOUT_ENABLED`, `MCP_REQUEST_TIMEOUT_SECONDS`, `MCP_ORIGIN_VALIDATION_ENABLED`, `MCP_ALLOWED_ORIGINS` |
+| Produktiver MCP-Betrieb über HTTP | `python -m app.mcp.discovery_http` | `streamable-http` | keine (projektseitig) | Guardrail-/Security-ENV wie oben, je Deployment-Policy verpflichtend |
+
+### ENV-Hinweise je Profil
+
+- `MCP_AUTH_*`, `MCP_ABUSE_GUARD_*`, `MCP_RATE_LIMIT_*`, `MCP_TIMEOUT_*`, `MCP_REQUEST_LOG_ENABLED`, `MCP_ORIGIN_VALIDATION_*` gelten nur für das `http-profile`.
+- `FASTMCP_PORT` ist nur eine Port-Konfiguration; im `stdio-profile` erfolgt keine HTTP-Bindung.
+
+
 ## HTTP Endpoint für Discovery + MCP
 
 Zusätzlich zur normalen MCP-Nutzung (STDIO) gibt es einen gemeinsamen HTTP-Endpoint:
@@ -176,8 +208,14 @@ pip install -r requirements.txt
 
 ## Server starten
 
+STDIO-Profil:
 ```bash
 python -m app.mcp.server
+```
+
+HTTP-Profil:
+```bash
+python -m app.mcp.discovery_http
 ```
 
 ### Claude Desktop (lokaler MCP-Prozess)
