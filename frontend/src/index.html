@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Calculations</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --app-space: 1rem;
+        --host-inset-top: 0px;
+        --host-inset-right: 0px;
+        --host-inset-bottom: 0px;
+        --host-inset-left: 0px;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      main {
+        padding-top: max(var(--app-space), env(safe-area-inset-top, 0px), var(--host-inset-top));
+        padding-right: max(var(--app-space), env(safe-area-inset-right, 0px), var(--host-inset-right));
+        padding-bottom: max(var(--app-space), env(safe-area-inset-bottom, 0px), var(--host-inset-bottom));
+        padding-left: max(var(--app-space), env(safe-area-inset-left, 0px), var(--host-inset-left));
+      }
+      ul {
+        padding-left: 1.25rem;
+      }
+      .muted {
+        opacity: 0.75;
+      }
+    </style>
+  </head>
+  <body>
+    <main id="app-root"></main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

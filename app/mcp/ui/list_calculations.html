@@ -7,13 +7,21 @@
     <style>
       :root {
         color-scheme: light dark;
+        --app-space: 1rem;
+        --host-inset-top: 0px;
+        --host-inset-right: 0px;
+        --host-inset-bottom: 0px;
+        --host-inset-left: 0px;
       }
       body {
         margin: 0;
         font-family: system-ui, -apple-system, sans-serif;
       }
       main {
-        padding: 1rem;
+        padding-top: max(var(--app-space), env(safe-area-inset-top, 0px), var(--host-inset-top));
+        padding-right: max(var(--app-space), env(safe-area-inset-right, 0px), var(--host-inset-right));
+        padding-bottom: max(var(--app-space), env(safe-area-inset-bottom, 0px), var(--host-inset-bottom));
+        padding-left: max(var(--app-space), env(safe-area-inset-left, 0px), var(--host-inset-left));
       }
       ul {
         padding-left: 1.25rem;
@@ -43,6 +51,18 @@
       const detailsJsonEl = document.getElementById("details-json");
       const parentOrigin = document.referrer ? new URL(document.referrer).origin : "*";
 
+      function applyHostInsets(hostContext) {
+        if (!hostContext || typeof hostContext !== "object") return;
+        const insets = hostContext.safeAreaInsets || hostContext.insets;
+        if (!insets || typeof insets !== "object") return;
+
+        const docStyle = document.documentElement.style;
+        if (typeof insets.top === "number") docStyle.setProperty("--host-inset-top", `${insets.top}px`);
+        if (typeof insets.right === "number") docStyle.setProperty("--host-inset-right", `${insets.right}px`);
+        if (typeof insets.bottom === "number") docStyle.setProperty("--host-inset-bottom", `${insets.bottom}px`);
+        if (typeof insets.left === "number") docStyle.setProperty("--host-inset-left", `${insets.left}px`);
+      }
+
       function requestCalculationDetails(calculationId) {
         if (!calculationId) return;
         const payload = {
@@ -66,8 +86,18 @@
 
       function parseIncomingMessage(data) {
         if (!data || typeof data !== "object") return null;
+        if (data.type === "host-context" || data.type === "host-update") {
+          applyHostInsets(data.hostContext);
+          return null;
+        }
+
         if (data.mcpUi && typeof data.mcpUi === "object") {
           const bridgeType = data.mcpUi.type;
+          if (bridgeType === "host-context" || bridgeType === "host-update") {
+            const hostPayload = data.mcpUi.payload ?? {};
+            applyHostInsets(hostPayload.hostContext ?? hostPayload);
+            return null;
+          }
           if (bridgeType !== "tool-result") return null;
           const bridgePayload = data.mcpUi.payload ?? {};
           return {

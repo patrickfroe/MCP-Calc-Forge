@@ -243,6 +243,28 @@ export MCP_ORIGIN_VALIDATION_ENABLED=true
 export MCP_ALLOWED_ORIGINS="https://app.example.com,https://admin.example.com"
 ```
 
+
+## UI Build (MCP Apps / iframe)
+
+Die UI kann als Single-File-Artefakt gebaut werden (für embeddete Hosts/Sandbox-Iframes):
+
+```bash
+make ui-install
+make ui-build
+make ui-verify
+```
+
+Ergebnis:
+- Build-Artefakt: `frontend/dist/src/index.html`
+- Resource-Lieferung: `ui://calculations/list` liest bevorzugt dieses Artefakt,
+  fällt aber auf `app/mcp/ui/list_calculations.html` zurück, falls kein Build vorhanden ist.
+
+Schneller Verifikationspfad (Tool + Resource + UI-Loader):
+
+```bash
+make test-ui-flow
+```
+
 ## Voraussetzungen
 
 - Python 3.10+

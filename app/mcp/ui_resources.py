@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
@@ -7,6 +8,7 @@ from typing import Callable
 from fastmcp import FastMCP
 
 UI_ASSETS_DIR = Path(__file__).resolve().parent / "ui"
+FRONTEND_DIST_HTML = Path(__file__).resolve().parents[2] / "frontend" / "dist" / "src" / "index.html"
 
 UIResourceLoader = Callable[[], str]
 
@@ -25,7 +27,21 @@ def _read_ui_file(filename: str) -> str:
     return (UI_ASSETS_DIR / filename).read_text(encoding="utf-8")
 
 
+def _load_list_calculations_ui() -> str:
+    if FRONTEND_DIST_HTML.exists():
+        return FRONTEND_DIST_HTML.read_text(encoding="utf-8")
+    return _read_ui_file("list_calculations.html")
+
+
+def _parse_domain_allowlist(env_var_name: str) -> list[str]:
+    raw = os.getenv(env_var_name, "")
+    return [value.strip() for value in raw.split(",") if value.strip()]
+
+
 def _restrictive_default_csp_meta() -> dict[str, object]:
+    # Defaults stay restrictive; allowlists can be extended per deployment via ENV.
+    connect_domains = _parse_domain_allowlist("MCP_UI_CSP_CONNECT_DOMAINS")
+    resource_domains = _parse_domain_allowlist("MCP_UI_CSP_RESOURCE_DOMAINS")
     return {
         "_meta": {
             "ui": {
@@ -36,8 +52,8 @@ def _restrictive_default_csp_meta() -> dict[str, object]:
                     "supportsLegacyTopLevelType": True,
                 },
                 "csp": {
-                    "connectDomains": [],
-                    "resourceDomains": [],
+                    "connectDomains": connect_domains,
+                    "resourceDomains": resource_domains,
                 },
                 "displayModes": ["inline", "fullscreen"],
                 "theming": {"supportsHostTheme": True},
@@ -59,7 +75,7 @@ def get_ui_resource_specs() -> tuple[MCPUIResourceSpec, ...]:
             name="calculations_list_view",
             description="UI scaffold for listing available calculations.",
             mime_type="text/html",
-            loader=lambda: _read_ui_file("list_calculations.html"),
+            loader=_load_list_calculations_ui,
             meta=_restrictive_default_csp_meta(),
         ),
     )
