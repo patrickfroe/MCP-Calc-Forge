@@ -47,7 +47,7 @@ def test_mcp_server_registers_all_four_tools() -> None:
     }
     assert by_name["execute_calculation"].output_schema["properties"]["calculation_id"]["type"] == "string"
     assert "ui://calculations/list" in resources_by_uri
-    resource_ui_meta = resources_by_uri["ui://calculations/list"].meta["_meta"]["ui"]
+    resource_ui_meta = resources_by_uri["ui://calculations/list"].meta["ui"]
     assert resource_ui_meta["csp"] == {"connectDomains": [], "resourceDomains": []}
     assert resource_ui_meta["displayModes"] == ["inline", "fullscreen"]
     assert resource_ui_meta["theming"] == {"supportsHostTheme": True}

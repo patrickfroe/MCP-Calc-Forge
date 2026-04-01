@@ -175,7 +175,7 @@ def test_mcp_resources_read_returns_registered_ui_html() -> None:
     contents = payload["result"]["contents"]
     assert len(contents) == 1
     assert contents[0]["uri"] == "ui://calculations/list"
-    assert contents[0]["mimeType"] == "text/html"
+    assert contents[0]["mimeType"] == "text/html;profile=mcp-app"
     assert "<h1>Calculations</h1>" in contents[0]["text"]
     assert "tool-result" in contents[0]["text"]
 
@@ -221,7 +221,7 @@ def test_each_tool_ui_resource_uri_is_registered_with_matching_ui_html_mimetype(
     for uri in tool_ui_uris:
         assert uri in registered_by_uri, f"Tool references missing resource URI: {uri}"
         resource = registered_by_uri[uri]
-        assert resource.mime_type == "text/html"
+        assert resource.mime_type == "text/html;profile=mcp-app"
         assert resource.loader().lstrip().lower().startswith("<!doctype html>")
 
 

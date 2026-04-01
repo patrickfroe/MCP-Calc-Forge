@@ -12,17 +12,17 @@ def test_ui_resource_specs_expose_ui_scheme_and_restrictive_default_csp() -> Non
 
     resource = specs[0]
     assert resource.uri.startswith("ui://")
-    assert resource.mime_type == "text/html"
-    assert resource.meta["_meta"]["ui"]["csp"]["connectDomains"] == []
-    assert resource.meta["_meta"]["ui"]["csp"]["resourceDomains"] == []
-    assert resource.meta["_meta"]["ui"]["bridge"]["version"] == "1.0"
-    assert resource.meta["_meta"]["ui"]["bridge"]["incomingMessageTypes"] == ["tool-result"]
-    assert resource.meta["_meta"]["ui"]["bridge"]["outgoingMessageTypes"] == ["tool-call-request"]
-    assert resource.meta["_meta"]["ui"]["bridge"]["supportsLegacyTopLevelType"] is True
-    assert resource.meta["_meta"]["ui"]["displayModes"] == ["inline", "fullscreen"]
-    assert resource.meta["_meta"]["ui"]["theming"]["supportsHostTheme"] is True
-    assert resource.meta["_meta"]["ui"]["hostContext"]["acceptsLocale"] is True
-    assert resource.meta["_meta"]["ui"]["lifecycle"]["teardownEvent"] == "view-unload"
+    assert resource.mime_type == "text/html;profile=mcp-app"
+    assert resource.meta["ui"]["csp"]["connectDomains"] == []
+    assert resource.meta["ui"]["csp"]["resourceDomains"] == []
+    assert resource.meta["ui"]["bridge"]["version"] == "1.0"
+    assert resource.meta["ui"]["bridge"]["incomingMessageTypes"] == ["tool-result"]
+    assert resource.meta["ui"]["bridge"]["outgoingMessageTypes"] == ["tool-call-request"]
+    assert resource.meta["ui"]["bridge"]["supportsLegacyTopLevelType"] is True
+    assert resource.meta["ui"]["displayModes"] == ["inline", "fullscreen"]
+    assert resource.meta["ui"]["theming"]["supportsHostTheme"] is True
+    assert resource.meta["ui"]["hostContext"]["acceptsLocale"] is True
+    assert resource.meta["ui"]["lifecycle"]["teardownEvent"] == "view-unload"
 
 
 def test_ui_resource_loader_returns_html_document() -> None:
@@ -41,7 +41,7 @@ def test_ui_resource_specs_allow_env_based_csp_domain_extension(monkeypatch) -> 
     monkeypatch.setenv("MCP_UI_CSP_RESOURCE_DOMAINS", "https://cdn.example.com")
 
     resource = get_ui_resource_specs()[0]
-    csp_meta = resource.meta["_meta"]["ui"]["csp"]
+    csp_meta = resource.meta["ui"]["csp"]
 
     assert csp_meta["connectDomains"] == ["https://api.example.com", "https://mcp.example.com"]
     assert csp_meta["resourceDomains"] == ["https://cdn.example.com"]
