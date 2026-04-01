@@ -14,7 +14,7 @@ def _extract_sse_data_payload(response_text: str) -> dict[str, object]:
     raise AssertionError("No SSE data payload found")
 
 
-def _initialize_session(client: TestClient) -> str:
+def _initialize_session(client: TestClient) -> str | None:
     response = client.post(
         MCP_HTTP_PATH,
         json={
@@ -30,16 +30,23 @@ def _initialize_session(client: TestClient) -> str:
         headers={"accept": "application/json, text/event-stream"},
     )
     assert response.status_code == 200
-    session_id = response.headers.get("mcp-session-id")
-    assert session_id
-    return session_id
+    return response.headers.get("mcp-session-id")
 
 
-def _post_rpc(client: TestClient, session_id: str, request_id: int, method: str, params: dict[str, object]) -> dict[str, object]:
+def _post_rpc(
+    client: TestClient,
+    session_id: str | None,
+    request_id: int,
+    method: str,
+    params: dict[str, object],
+) -> dict[str, object]:
+    headers = {"accept": "application/json, text/event-stream"}
+    if session_id:
+        headers["mcp-session-id"] = session_id
     response = client.post(
         MCP_HTTP_PATH,
         json={"jsonrpc": "2.0", "id": request_id, "method": method, "params": params},
-        headers={"accept": "application/json, text/event-stream", "mcp-session-id": session_id},
+        headers=headers,
     )
     assert response.status_code == 200
     payload = _extract_sse_data_payload(response.text)

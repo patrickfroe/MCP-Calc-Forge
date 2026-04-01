@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 import time
@@ -169,13 +170,15 @@ class MCPRequestLoggingMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         duration_ms = round((time.time() - started) * 1000, 2)
         client_host = request.client.host if request.client and request.client.host else "unknown"
+        error_reason = _derive_error_reason(response)
         LOGGER.info(
-            "mcp_http_request method=%s path=%s status=%s duration_ms=%s client=%s",
+            "mcp_http_request method=%s path=%s status=%s duration_ms=%s client=%s reason=%s",
             request.method,
             request.url.path,
             response.status_code,
             duration_ms,
             client_host,
+            error_reason or "-",
         )
         return response
 
@@ -199,7 +202,8 @@ class MCPOriginValidationMiddleware(BaseHTTPMiddleware):
 
 def create_combined_http_app(path: str = MCP_HTTP_PATH) -> Starlette:
     mcp = create_mcp_server()
-    mcp_http_app = mcp.http_app(path=path, transport="streamable-http")
+    stateless_http = _is_truthy(os.getenv("MCP_STATELESS_HTTP", "true"))
+    mcp_http_app = mcp.http_app(path=path, transport="streamable-http", stateless_http=stateless_http)
     middleware = [Middleware(DiscoveryGetMiddleware, path=path)]
 
     auth_enabled = _is_truthy(os.getenv("MCP_AUTH_ENABLED", "false"))
@@ -263,7 +267,37 @@ def create_combined_http_app(path: str = MCP_HTTP_PATH) -> Starlette:
     )
     app.state.fastmcp_server = mcp
     app.state.path = path
+    app.state.stateless_http = stateless_http
     return app
+
+
+def _derive_error_reason(response: Response) -> str | None:
+    if response.status_code < 400:
+        return None
+
+    body = getattr(response, "body", b"")
+    if not body:
+        return "http_error_without_body"
+
+    try:
+        payload = json.loads(body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return "http_error_non_json_body"
+
+    message = str(payload.get("error", {}).get("message", "")).lower()
+    if "missing session id" in message:
+        return "missing_session_id"
+    if "invalid session id" in message:
+        return "invalid_session_id"
+    if "not initialized" in message:
+        return "request_before_initialize"
+    if "unsupported protocol version" in message:
+        return "unsupported_protocol_version"
+    if "parse error" in message:
+        return "malformed_jsonrpc_request"
+    if "not acceptable" in message:
+        return "invalid_accept_header"
+    return "bad_request"
 
 
 def _build_ui_preview_html() -> str:

@@ -16,7 +16,7 @@ def _extract_sse_data_payload(response_text: str) -> dict[str, object]:
     raise AssertionError("No SSE data payload found")
 
 
-def _initialize_session(client: TestClient) -> str:
+def _initialize_session(client: TestClient) -> str | None:
     request_body = {
         "jsonrpc": "2.0",
         "id": 1,
@@ -33,9 +33,7 @@ def _initialize_session(client: TestClient) -> str:
         headers={"accept": "application/json, text/event-stream"},
     )
     assert response.status_code == 200
-    session_id = response.headers.get("mcp-session-id")
-    assert session_id
-    return session_id
+    return response.headers.get("mcp-session-id")
 
 
 def test_build_discovery_payload_contains_server_metadata_and_tool_schemas() -> None:
@@ -158,6 +156,9 @@ def test_mcp_resources_read_returns_registered_ui_html() -> None:
     app = create_combined_http_app()
     with TestClient(app) as client:
         session_id = _initialize_session(client)
+        headers = {"accept": "application/json, text/event-stream"}
+        if session_id:
+            headers["mcp-session-id"] = session_id
         response = client.post(
             MCP_HTTP_PATH,
             json={
@@ -166,10 +167,7 @@ def test_mcp_resources_read_returns_registered_ui_html() -> None:
                 "method": "resources/read",
                 "params": {"uri": "ui://calculations/list"},
             },
-            headers={
-                "accept": "application/json, text/event-stream",
-                "mcp-session-id": session_id,
-            },
+            headers=headers,
         )
 
     assert response.status_code == 200
@@ -186,6 +184,9 @@ def test_mcp_resources_read_unknown_ui_uri_returns_jsonrpc_error() -> None:
     app = create_combined_http_app()
     with TestClient(app) as client:
         session_id = _initialize_session(client)
+        headers = {"accept": "application/json, text/event-stream"}
+        if session_id:
+            headers["mcp-session-id"] = session_id
         response = client.post(
             MCP_HTTP_PATH,
             json={
@@ -194,10 +195,7 @@ def test_mcp_resources_read_unknown_ui_uri_returns_jsonrpc_error() -> None:
                 "method": "resources/read",
                 "params": {"uri": "ui://missing/view"},
             },
-            headers={
-                "accept": "application/json, text/event-stream",
-                "mcp-session-id": session_id,
-            },
+            headers=headers,
         )
 
     assert response.status_code == 200
@@ -231,6 +229,9 @@ def test_mcp_ui_flow_initialize_tool_call_and_resource_read_is_consistent() -> N
     app = create_combined_http_app()
     with TestClient(app) as client:
         session_id = _initialize_session(client)
+        headers = {"accept": "application/json, text/event-stream"}
+        if session_id:
+            headers["mcp-session-id"] = session_id
         tools_list = client.post(
             MCP_HTTP_PATH,
             json={
@@ -239,10 +240,7 @@ def test_mcp_ui_flow_initialize_tool_call_and_resource_read_is_consistent() -> N
                 "method": "tools/list",
                 "params": {},
             },
-            headers={
-                "accept": "application/json, text/event-stream",
-                "mcp-session-id": session_id,
-            },
+            headers=headers,
         )
         tools_call = client.post(
             MCP_HTTP_PATH,
@@ -252,10 +250,7 @@ def test_mcp_ui_flow_initialize_tool_call_and_resource_read_is_consistent() -> N
                 "method": "tools/call",
                 "params": {"name": "list_calculations", "arguments": {}},
             },
-            headers={
-                "accept": "application/json, text/event-stream",
-                "mcp-session-id": session_id,
-            },
+            headers=headers,
         )
         resources_read = client.post(
             MCP_HTTP_PATH,
@@ -265,10 +260,7 @@ def test_mcp_ui_flow_initialize_tool_call_and_resource_read_is_consistent() -> N
                 "method": "resources/read",
                 "params": {"uri": "ui://calculations/list"},
             },
-            headers={
-                "accept": "application/json, text/event-stream",
-                "mcp-session-id": session_id,
-            },
+            headers=headers,
         )
 
     assert tools_list.status_code == 200
@@ -329,6 +321,76 @@ def test_mcp_post_with_malformed_json_returns_parse_error() -> None:
     payload = json.loads(response.text)
     assert payload["jsonrpc"] == "2.0"
     assert payload["error"]["code"] == -32700
+
+
+def test_streamable_http_defaults_to_stateless_for_host_interoperability() -> None:
+    app = create_combined_http_app()
+    request_body = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "initialize",
+        "params": {
+            "protocolVersion": "2025-03-26",
+            "capabilities": {},
+            "clientInfo": {"name": "pytest-client", "version": "1.0"},
+        },
+    }
+
+    with TestClient(app) as client:
+        initialize_response = client.post(
+            MCP_HTTP_PATH,
+            json=request_body,
+            headers={"accept": "application/json, text/event-stream"},
+        )
+        tools_list_response = client.post(
+            MCP_HTTP_PATH,
+            json={"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}},
+            headers={"accept": "application/json, text/event-stream"},
+        )
+
+    assert initialize_response.status_code == 200
+    assert initialize_response.headers.get("mcp-session-id") is None
+    assert tools_list_response.status_code == 200
+
+
+def test_stateful_mode_issues_session_id_on_initialize(monkeypatch) -> None:
+    monkeypatch.setenv("MCP_STATELESS_HTTP", "false")
+    app = create_combined_http_app()
+
+    with TestClient(app) as client:
+        response = client.post(
+            MCP_HTTP_PATH,
+            json={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2025-03-26",
+                    "capabilities": {},
+                    "clientInfo": {"name": "pytest-client", "version": "1.0"},
+                },
+            },
+            headers={"accept": "application/json, text/event-stream"},
+        )
+
+    assert response.status_code == 200
+    assert response.headers.get("mcp-session-id")
+
+
+def test_stateful_mode_rejects_missing_session_id_for_tools_list(monkeypatch) -> None:
+    monkeypatch.setenv("MCP_STATELESS_HTTP", "false")
+    app = create_combined_http_app()
+
+    with TestClient(app) as client:
+        response = client.post(
+            MCP_HTTP_PATH,
+            json={"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}},
+            headers={"accept": "application/json, text/event-stream"},
+        )
+
+    assert response.status_code == 400
+    payload = json.loads(response.text)
+    assert payload["error"]["message"] == "Bad Request: Missing session ID"
 
 
 def test_mcp_post_requests_work_without_auth_when_auth_disabled(monkeypatch) -> None:
