@@ -65,6 +65,9 @@ def test_list_calculations_and_get_details_end_to_end() -> None:
     assert details_payload["ok"] is True
     assert details_payload["result"]["id"] == "loan_annuity_payment"
     assert details_payload["result"]["output_type"] == "object"
+    assert details_payload["structuredContent"] == details_payload["result"]
+    assert details_payload["content"][0]["type"] == "text"
+    assert "Details for loan_annuity_payment" in details_payload["content"][0]["text"]
 
 
 def test_list_calculations_progressive_enhancement_keeps_legacy_result_contract() -> None:
@@ -102,6 +105,8 @@ def test_tools_return_structured_errors() -> None:
     unknown_payload = get_calculation_details_tool("missing")
     assert unknown_payload["ok"] is False
     assert unknown_payload["error"]["code"] == "UNKNOWN_CALCULATION_ID"
+    assert unknown_payload["content"][0]["type"] == "text"
+    assert "missing" in unknown_payload["content"][0]["text"]
 
     invalid_calc_payload = execute_calculation_tool(
         "currency_conversion_static",
