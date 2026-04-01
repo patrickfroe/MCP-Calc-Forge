@@ -80,6 +80,12 @@ TOOL_SPECS: tuple[MCPToolSpec, ...] = (
             "additionalProperties": True,
         },
         handler=calculate_expression_handler,
+        meta={
+            "ui": {
+                "resourceUri": "ui://calculations/list",
+                "visibility": ["model", "app"],
+            }
+        },
     ),
     MCPToolSpec(
         name="list_calculations",
@@ -239,5 +245,11 @@ TOOL_SPECS: tuple[MCPToolSpec, ...] = (
             "additionalProperties": True,
         },
         handler=execute_calculation_handler,
+        meta={
+            "ui": {
+                "resourceUri": "ui://calculations/list",
+                "visibility": ["model", "app"],
+            }
+        },
     ),
 )

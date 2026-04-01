@@ -29,6 +29,12 @@ def _restrictive_default_csp_meta() -> dict[str, object]:
     return {
         "_meta": {
             "ui": {
+                "bridge": {
+                    "version": "1.0",
+                    "incomingMessageTypes": ["tool-result"],
+                    "outgoingMessageTypes": ["tool-call-request"],
+                    "supportsLegacyTopLevelType": True,
+                },
                 "csp": {
                     "connectDomains": [],
                     "resourceDomains": [],

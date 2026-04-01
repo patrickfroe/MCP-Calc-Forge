@@ -11,6 +11,26 @@ Getestet werden insbesondere:
 - das tatsächliche Frontend-Verhalten der HTML-View (`list_calculations.html`) bei `tool-result`-Events
 - die Interaktion zwischen UI und Host (`tool-call-request` für `get_calculation_details`)
 
+## 1.1) UI-Bridge-Contract (Version 1.0)
+
+Die View unterstützt zwei Eingangsformate für Host-Nachrichten:
+
+1) **Legacy-Format** (Top-Level):
+- `type: "tool-result"`
+- `toolName: string`
+- `structuredContent` oder `result`
+
+2) **Bridge-v1.0-Format**:
+- `mcpUi.version: "1.0"`
+- `mcpUi.type: "tool-result"`
+- `mcpUi.payload: { toolName, structuredContent?, result? }`
+
+Ausgehende UI-Nachrichten (`tool-call-request`) enthalten **beide** Formen gleichzeitig:
+- Legacy-Top-Level (`type`, `toolName`, `arguments`)
+- `mcpUi`-Envelope (`version`, `type`, `payload`)
+
+Damit bleiben bestehende Hosts kompatibel, während neue Hosts den versionierten Envelope nutzen können.
+
 Zielgruppe:
 
 - Entwickler
@@ -92,6 +112,14 @@ Erwartung:
   - `get_calculation_details`
   - `ui_get_calculation_preview`
 - Tool-Meta enthält `resourceUri: "ui://calculations/list"` für die UI-relevanten Tools.
+
+### 3.4 Checkliste für generische MCP-UI-Hosts
+
+- Verwende **HTTP-Profil** (`python -m app.mcp.discovery_http`), nicht den STDIO-Entrypoint.
+- Sende bei MCP-POST-Requests `Accept: application/json, text/event-stream`.
+- Übernimm `mcp-session-id` aus `initialize` für alle Folgeaufrufe.
+- Lies Tool-UI-Referenzen aus `_meta.ui.resourceUri` (robust), optional zusätzlich aus `meta.ui.resourceUri`.
+- Wenn UI-Ressource nicht geladen werden kann, verwende Fallback-Rendering aus Tool-Result (`content`/`structuredContent`/`result`).
 
 ---
 
@@ -258,6 +286,18 @@ window.postMessage({
   }
 }, "*");
 ```
+
+---
+
+## 6) Typische Integrationsfehler
+
+| Fehlerbild | Ursache | Maßnahme |
+| --- | --- | --- |
+| `401` auf MCP-POST | Auth aktiv ohne gültigen Bearer Token | `MCP_AUTH_TOKEN` prüfen und Header setzen. |
+| `403 ORIGIN_NOT_ALLOWED` | Origin-Validierung aktiv, Origin fehlt in Allowlist | `MCP_ALLOWED_ORIGINS` ergänzen. |
+| `429` | Rate-Limit aktiv | Request-Frequenz reduzieren oder Limits anpassen. |
+| `504` | Timeout zu klein | Timeout erhöhen oder Request entlasten. |
+| UI bleibt leer | Tool-URI/Resource-Mismatch oder kein `tool-result` beim Host angekommen | `tools/list`, `resources/read` und Host-Message-Bridge separat prüfen. |
 
 **Erwartung:** Bereich „Calculation details“ wird sichtbar; JSON wird im `<pre>` angezeigt.
 

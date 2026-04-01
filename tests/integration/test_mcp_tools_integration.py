@@ -33,11 +33,17 @@ def test_mcp_server_registers_all_four_tools() -> None:
     assert by_name["list_calculations"].meta == {
         "ui": {"resourceUri": "ui://calculations/list", "visibility": ["model", "app"]}
     }
+    assert by_name["calculate_expression"].meta == {
+        "ui": {"resourceUri": "ui://calculations/list", "visibility": ["model", "app"]}
+    }
     assert by_name["get_calculation_details"].meta == {
         "ui": {"resourceUri": "ui://calculations/list", "visibility": ["model", "app"]}
     }
     assert by_name["ui_get_calculation_preview"].meta == {
         "ui": {"resourceUri": "ui://calculations/list", "visibility": ["app"]}
+    }
+    assert by_name["execute_calculation"].meta == {
+        "ui": {"resourceUri": "ui://calculations/list", "visibility": ["model", "app"]}
     }
     assert by_name["execute_calculation"].output_schema["properties"]["calculation_id"]["type"] == "string"
     assert "ui://calculations/list" in resources_by_uri
