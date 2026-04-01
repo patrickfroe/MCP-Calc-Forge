@@ -5,6 +5,8 @@ from starlette.testclient import TestClient
 
 from app.mcp.discovery import build_discovery_payload
 from app.mcp.discovery_http import MCP_HTTP_PATH, UI_PREVIEW_PATH, create_combined_http_app
+from app.mcp.tool_specs import TOOL_SPECS
+from app.mcp.ui_resources import get_ui_resource_specs
 
 
 def _extract_sse_data_payload(response_text: str) -> dict[str, object]:
@@ -64,8 +66,14 @@ def test_build_discovery_payload_contains_server_metadata_and_tool_schemas() -> 
     assert "evaluate_expression" not in by_name
     assert by_name["calculate_expression"]["inputSchema"]["title"] == "CalculateExpressionInput"
     assert by_name["calculate_expression"]["inputSchema"]["properties"]["expression"]["maxLength"] == 500
+    assert by_name["calculate_expression"]["meta"]["ui"]["resourceUri"] == "ui://calculations/list"
+    assert by_name["calculate_expression"]["_meta"]["ui"]["resourceUri"] == "ui://calculations/list"
+    assert by_name["calculate_expression"]["meta"]["ui"]["visibility"] == ["model", "app"]
     assert by_name["execute_calculation"]["inputSchema"]["required"] == ["calculation_id", "input"]
     assert by_name["execute_calculation"]["inputSchema"]["additionalProperties"] is False
+    assert by_name["execute_calculation"]["meta"]["ui"]["resourceUri"] == "ui://calculations/list"
+    assert by_name["execute_calculation"]["_meta"]["ui"]["resourceUri"] == "ui://calculations/list"
+    assert by_name["execute_calculation"]["meta"]["ui"]["visibility"] == ["model", "app"]
     assert by_name["get_calculation_details"]["inputSchema"]["additionalProperties"] is False
     assert by_name["calculate_expression"]["inputSchema"]["additionalProperties"] is False
     assert by_name["list_calculations"]["meta"]["ui"]["resourceUri"] == "ui://calculations/list"
@@ -172,6 +180,51 @@ def test_mcp_resources_read_returns_registered_ui_html() -> None:
     assert contents[0]["mimeType"] == "text/html"
     assert "<h1>Calculations</h1>" in contents[0]["text"]
     assert "tool-result" in contents[0]["text"]
+
+
+def test_mcp_resources_read_unknown_ui_uri_returns_jsonrpc_error() -> None:
+    app = create_combined_http_app()
+    with TestClient(app) as client:
+        session_id = _initialize_session(client)
+        response = client.post(
+            MCP_HTTP_PATH,
+            json={
+                "jsonrpc": "2.0",
+                "id": 22,
+                "method": "resources/read",
+                "params": {"uri": "ui://missing/view"},
+            },
+            headers={
+                "accept": "application/json, text/event-stream",
+                "mcp-session-id": session_id,
+            },
+        )
+
+    assert response.status_code == 200
+    payload = _extract_sse_data_payload(response.text)
+    assert payload["jsonrpc"] == "2.0"
+    assert payload["id"] == 22
+    assert payload["error"]["code"] == -32002
+    assert "Resource not found" in payload["error"]["message"]
+    assert "ui://missing/view" in payload["error"]["message"]
+
+
+def test_each_tool_ui_resource_uri_is_registered_with_matching_ui_html_mimetype() -> None:
+    tool_ui_uris = {
+        str(spec.meta["ui"]["resourceUri"])
+        for spec in TOOL_SPECS
+        if isinstance(spec.meta, dict)
+        and isinstance(spec.meta.get("ui"), dict)
+        and "resourceUri" in spec.meta["ui"]
+    }
+    registered_by_uri = {resource.uri: resource for resource in get_ui_resource_specs()}
+
+    assert tool_ui_uris
+    for uri in tool_ui_uris:
+        assert uri in registered_by_uri, f"Tool references missing resource URI: {uri}"
+        resource = registered_by_uri[uri]
+        assert resource.mime_type == "text/html"
+        assert resource.loader().lstrip().lower().startswith("<!doctype html>")
 
 
 def test_mcp_ui_flow_initialize_tool_call_and_resource_read_is_consistent() -> None:

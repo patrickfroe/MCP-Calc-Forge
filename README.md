@@ -35,9 +35,12 @@ Implementierung: `app/mcp/server.py`.
 
 ### MCP Apps Visibility (aktueller Stand)
 
+- `calculate_expression`: `visibility=["model","app"]`, verknüpft mit `ui://calculations/list`
 - `list_calculations`: `visibility=["model","app"]`, verknüpft mit `ui://calculations/list`
 - `get_calculation_details`: `visibility=["model","app"]`, verknüpft mit `ui://calculations/list`
 - `ui_get_calculation_preview`: `visibility=["app"]`, verknüpft mit `ui://calculations/list` als UI-Helfer ohne eigene Business-Logik.
+- `execute_calculation`: `visibility=["model","app"]`, verknüpft mit `ui://calculations/list`
+- Aktuell verwenden alle UI-fähigen Tools bewusst dieselbe Host-View `ui://calculations/list` (progressive enhancement).
 - UI-Metadaten werden serverseitig als `meta.ui` geführt; im Discovery-JSON wird zusätzlich `_meta.ui` auf Top-Level gespiegelt, damit generische Hosts die Resource-Referenz robuster finden.
 
 ### MCP Apps Progressive Enhancement & UI Lifecycle
@@ -47,6 +50,24 @@ Implementierung: `app/mcp/server.py`.
 - **Interaktivität:** Die View kann über Host-Messages Tool-Aufrufe anfordern (z. B. `get_calculation_details`), ohne Business-Logik im Frontend zu duplizieren.
 - **Theming / Host Context / Display Modes:** Die UI-Resource-Metadaten deklarieren Host-Theme-Unterstützung, Locale/Timezone-Context und unterstützte Display-Modes.
 - **Lifecycle-Hinweise:** Metadaten enthalten deklarative Init/Update/Teardown-Events für Host-Integration.
+
+### UI Bridge Contract (v1.0)
+
+Die eingebettete HTML-UI nutzt einen dokumentierten PostMessage-Bridge-Contract:
+
+- **Ausgehend (UI -> Host):**
+  - `tool-call-request` für interaktive Nachladungen, z. B. `get_calculation_details`.
+  - Nachricht enthält weiterhin Legacy-Felder (`type`, `toolName`, `arguments`) und zusätzlich:
+    - `mcpUi.version = "1.0"`
+    - `mcpUi.type = "tool-call-request"`
+    - `mcpUi.payload = { toolName, arguments }`
+- **Eingehend (Host -> UI):**
+  - `tool-result` wird in zwei Varianten akzeptiert:
+    1. Legacy: Top-Level `type: "tool-result"` + `toolName` + (`structuredContent` oder `result`)
+    2. Bridge v1.0: `mcpUi.type = "tool-result"` + `mcpUi.payload`
+- **Kompatibilität:**
+  - Die UI bleibt rückwärtskompatibel zu Legacy-Hosts (`supportsLegacyTopLevelType=true` in Resource-Meta).
+  - Origin-Checks bleiben aktiv (`event.origin` muss zum Parent-Origin passen, sofern bestimmbar).
 
 ### Numerik-Policy
 
@@ -115,6 +136,24 @@ Der Server bietet zwei bewusst getrennte Betriebsprofile:
 | Browser-Tests / UI-Preview lokal | `python -m app.mcp.discovery_http` | `streamable-http` | keine | `MCP_REQUEST_LOG_ENABLED`, `MCP_AUTH_ENABLED`, `MCP_AUTH_TOKEN`, `MCP_ABUSE_GUARD_ENABLED`, `MCP_MAX_REQUEST_BYTES`, `MCP_RATE_LIMIT_ENABLED`, `MCP_RATE_LIMIT_REQUESTS`, `MCP_RATE_LIMIT_WINDOW_SECONDS`, `MCP_TIMEOUT_ENABLED`, `MCP_REQUEST_TIMEOUT_SECONDS`, `MCP_ORIGIN_VALIDATION_ENABLED`, `MCP_ALLOWED_ORIGINS` |
 | Produktiver MCP-Betrieb über HTTP | `python -m app.mcp.discovery_http` | `streamable-http` | keine (projektseitig) | Guardrail-/Security-ENV wie oben, je Deployment-Policy verpflichtend |
 
+### Generic MCP UI Host Quickstart (AppRenderer / `@mcp-ui/client`)
+
+Für einen generischen MCP-UI-Host gilt als Standardpfad:
+
+1. Server im HTTP-Profil starten:
+   - `python -m app.mcp.discovery_http`
+2. `initialize` per `POST /api/v1/mcp` mit:
+   - `Accept: application/json, text/event-stream`
+3. `mcp-session-id` aus dem Response-Header für Folge-Requests übernehmen.
+4. `tools/list` aufrufen und `_meta.ui.resourceUri` je Tool auswerten.
+5. Für UI-fähige Tools die Resource per `resources/read` laden und HTML in AppRenderer rendern.
+6. Falls UI-Aufruf fehlschlägt: auf `content`/`structuredContent`/`result` fallbacken.
+
+Wichtige Integrationsdetails:
+
+- Der lokale STDIO-Entrypoint (`python -m app.mcp.server`) ist **nicht** für remote HTTP-Hosts.
+- Optional aktivierte Guardrails (`MCP_AUTH_*`, `MCP_RATE_LIMIT_*`, `MCP_TIMEOUT_*`, `MCP_ORIGIN_VALIDATION_*`) können Requests blockieren.
+
 ### ENV-Hinweise je Profil
 
 - `MCP_AUTH_*`, `MCP_ABUSE_GUARD_*`, `MCP_RATE_LIMIT_*`, `MCP_TIMEOUT_*`, `MCP_REQUEST_LOG_ENABLED`, `MCP_ORIGIN_VALIDATION_*` gelten nur für das `http-profile`.
@@ -138,6 +177,16 @@ Zusätzlich zur normalen MCP-Nutzung (STDIO) gibt es einen gemeinsamen HTTP-Endp
 - Ungültige Request-Parameter werden als JSON-RPC-Fehler `-32602` zurückgegeben.
 - Malformed JSON wird mit Parse-Error `-32700` beantwortet.
 - `resources/read` für `ui://calculations/list` liefert `mimeType: text/html` und die embeddable HTML-View für Host-Renderer (z. B. AppRenderer).
+
+### Troubleshooting für generische Hosts
+
+| Symptom | Wahrscheinliche Ursache | Prüfung / Fix |
+| --- | --- | --- |
+| `401 UNAUTHORIZED` bei `POST /api/v1/mcp` | `MCP_AUTH_ENABLED=true`, fehlender/inkorrekter Bearer-Token | `Authorization: Bearer <MCP_AUTH_TOKEN>` mitsenden oder Auth lokal deaktivieren. |
+| `403 ORIGIN_NOT_ALLOWED` | `MCP_ORIGIN_VALIDATION_ENABLED=true`, Origin nicht auf Allowlist | `MCP_ALLOWED_ORIGINS` prüfen/ergänzen. |
+| `429 RATE_LIMITED` | Rate-Limit aktiv | Request-Frequenz reduzieren oder `MCP_RATE_LIMIT_*` anpassen. |
+| `504 TIMEOUT` | Timeout-Guardrail aktiv, Request zu langsam | `MCP_REQUEST_TIMEOUT_SECONDS` erhöhen oder teuren Request untersuchen. |
+| UI wird nicht gerendert | Tool hat keine `_meta.ui.resourceUri` oder Resource-Read scheitert | `tools/list` und `resources/read` separat prüfen; ansonsten auf Fallback-Inhalt zurückgehen. |
 
 Start des HTTP-Servers (lokal):
 

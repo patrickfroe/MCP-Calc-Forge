@@ -35,6 +35,7 @@
       </section>
     </main>
     <script>
+      const BRIDGE_VERSION = "1.0";
       const statusEl = document.getElementById("status");
       const listEl = document.getElementById("calculation-list");
       const detailsEl = document.getElementById("details");
@@ -44,14 +45,44 @@
 
       function requestCalculationDetails(calculationId) {
         if (!calculationId) return;
+        const payload = {
+          toolName: "get_calculation_details",
+          arguments: { calculation_id: calculationId }
+        };
         window.parent.postMessage(
           {
             type: "tool-call-request",
-            toolName: "get_calculation_details",
-            arguments: { calculation_id: calculationId }
+            toolName: payload.toolName,
+            arguments: payload.arguments,
+            mcpUi: {
+              version: BRIDGE_VERSION,
+              type: "tool-call-request",
+              payload
+            }
           },
           parentOrigin
         );
+      }
+
+      function parseIncomingMessage(data) {
+        if (!data || typeof data !== "object") return null;
+        if (data.mcpUi && typeof data.mcpUi === "object") {
+          const bridgeType = data.mcpUi.type;
+          if (bridgeType !== "tool-result") return null;
+          const bridgePayload = data.mcpUi.payload ?? {};
+          return {
+            toolName: bridgePayload.toolName ?? data.toolName ?? null,
+            structuredContent: bridgePayload.structuredContent ?? data.structuredContent,
+            result: bridgePayload.result ?? data.result
+          };
+        }
+
+        if (data.type !== "tool-result") return null;
+        return {
+          toolName: data.toolName ?? null,
+          structuredContent: data.structuredContent,
+          result: data.result
+        };
       }
 
       function renderCalculations(payload) {
@@ -79,11 +110,10 @@
       window.addEventListener("message", (event) => {
         if (event.source !== window.parent) return;
         if (parentOrigin !== "*" && event.origin !== parentOrigin) return;
-        if (!event.data || typeof event.data !== "object") return;
-        const data = event.data;
-        if (data.type !== "tool-result") return;
-        const structured = data.structuredContent ?? data.result ?? {};
-        if (data.toolName === "get_calculation_details") {
+        const parsed = parseIncomingMessage(event.data);
+        if (!parsed) return;
+        const structured = parsed.structuredContent ?? parsed.result ?? {};
+        if (parsed.toolName === "get_calculation_details") {
           renderDetails(structured);
           return;
         }
