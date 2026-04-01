@@ -99,7 +99,7 @@ def test_app_renderer_contract_tools_resources_and_tool_results_are_coherent() -
             {"uri": "ui://calculations/list"},
         )
         html = resources_result["contents"][0]["text"]
-        assert resources_result["contents"][0]["mimeType"] == "text/html"
+        assert resources_result["contents"][0]["mimeType"] == "text/html;profile=mcp-app"
         assert "Calculations" in html
         assert "tool-call-request" in html
         assert "get_calculation_details" in html

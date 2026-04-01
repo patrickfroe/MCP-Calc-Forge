@@ -43,27 +43,25 @@ def _restrictive_default_csp_meta() -> dict[str, object]:
     connect_domains = _parse_domain_allowlist("MCP_UI_CSP_CONNECT_DOMAINS")
     resource_domains = _parse_domain_allowlist("MCP_UI_CSP_RESOURCE_DOMAINS")
     return {
-        "_meta": {
-            "ui": {
-                "bridge": {
-                    "version": "1.0",
-                    "incomingMessageTypes": ["tool-result"],
-                    "outgoingMessageTypes": ["tool-call-request"],
-                    "supportsLegacyTopLevelType": True,
-                },
-                "csp": {
-                    "connectDomains": connect_domains,
-                    "resourceDomains": resource_domains,
-                },
-                "displayModes": ["inline", "fullscreen"],
-                "theming": {"supportsHostTheme": True},
-                "hostContext": {"acceptsLocale": True, "acceptsTimezone": True},
-                "lifecycle": {
-                    "initEvent": "tool-result",
-                    "updateEvent": "tool-result",
-                    "teardownEvent": "view-unload",
-                },
-            }
+        "ui": {
+            "bridge": {
+                "version": "1.0",
+                "incomingMessageTypes": ["tool-result"],
+                "outgoingMessageTypes": ["tool-call-request"],
+                "supportsLegacyTopLevelType": True,
+            },
+            "csp": {
+                "connectDomains": connect_domains,
+                "resourceDomains": resource_domains,
+            },
+            "displayModes": ["inline", "fullscreen"],
+            "theming": {"supportsHostTheme": True},
+            "hostContext": {"acceptsLocale": True, "acceptsTimezone": True},
+            "lifecycle": {
+                "initEvent": "tool-result",
+                "updateEvent": "tool-result",
+                "teardownEvent": "view-unload",
+            },
         }
     }
 
@@ -74,7 +72,7 @@ def get_ui_resource_specs() -> tuple[MCPUIResourceSpec, ...]:
             uri="ui://calculations/list",
             name="calculations_list_view",
             description="UI scaffold for listing available calculations.",
-            mime_type="text/html",
+            mime_type="text/html;profile=mcp-app",
             loader=_load_list_calculations_ui,
             meta=_restrictive_default_csp_meta(),
         ),
