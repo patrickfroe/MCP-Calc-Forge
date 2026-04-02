@@ -36,10 +36,10 @@ Implementierung: `app/mcp/server.py`.
 ### MCP Apps Visibility (aktueller Stand)
 
 - `calculate_expression`: `visibility=["model","app"]`, verknüpft mit `ui://calculations/list`
-- `list_calculations`: `visibility=["model","app"]`, verknüpft mit `ui://calculations/list`
-- `get_calculation_details`: `visibility=["model","app"]`, verknüpft mit `ui://calculations/list`
+- `list_calculations`: `visibility=["model","app"]`, verknüpft mit `ui://calculations/list` als primärer UI-Einstieg
+- `get_calculation_details`: `visibility=["app"]`, verknüpft mit `ui://calculations/list` als UI-Helfer
 - `ui_get_calculation_preview`: `visibility=["app"]`, verknüpft mit `ui://calculations/list` als UI-Helfer ohne eigene Business-Logik.
-- `execute_calculation`: `visibility=["model","app"]`, verknüpft mit `ui://calculations/list`
+- `execute_calculation`: `visibility=["app"]`, verknüpft mit `ui://calculations/list` als UI-Helfer
 - Aktuell verwenden alle UI-fähigen Tools bewusst dieselbe Host-View `ui://calculations/list` (progressive enhancement).
 - UI-Metadaten werden serverseitig als `meta.ui` geführt; im Discovery-JSON wird zusätzlich `_meta.ui` auf Top-Level gespiegelt, damit generische Hosts die Resource-Referenz robuster finden.
 

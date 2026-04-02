@@ -67,7 +67,9 @@ def test_app_renderer_contract_tools_resources_and_tool_results_are_coherent() -
         assert tools_by_name["calculate_expression"]["_meta"]["ui"]["visibility"] == ["model", "app"]
         assert tools_by_name["list_calculations"]["_meta"]["ui"]["resourceUri"] == "ui://calculations/list"
         assert tools_by_name["get_calculation_details"]["_meta"]["ui"]["resourceUri"] == "ui://calculations/list"
+        assert tools_by_name["get_calculation_details"]["_meta"]["ui"]["visibility"] == ["app"]
         assert tools_by_name["execute_calculation"]["_meta"]["ui"]["resourceUri"] == "ui://calculations/list"
+        assert tools_by_name["execute_calculation"]["_meta"]["ui"]["visibility"] == ["app"]
         assert tools_by_name["ui_get_calculation_preview"]["_meta"]["ui"]["visibility"] == ["app"]
 
         list_call_result = _post_rpc(
