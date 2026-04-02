@@ -29,6 +29,49 @@
       .muted {
         opacity: 0.75;
       }
+      .field {
+        margin: 0.75rem 0;
+      }
+      .field input,
+      .field select,
+      .field textarea {
+        width: min(100%, 30rem);
+        padding: 0.4rem;
+        box-sizing: border-box;
+      }
+      .field-help,
+      .field-error,
+      .status-error,
+      .status-success {
+        margin: 0.25rem 0 0;
+        font-size: 0.9rem;
+      }
+      .field-error,
+      .status-error {
+        color: #c62828;
+      }
+      .status-success {
+        color: #2e7d32;
+      }
+      .result-box {
+        border: 1px solid currentColor;
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+        margin-top: 0.75rem;
+      }
+      dl {
+        margin: 0;
+      }
+      dt {
+        font-weight: 600;
+      }
+      dd {
+        margin: 0 0 0.5rem 0;
+      }
+      .inline-meta {
+        font-size: 0.9rem;
+        opacity: 0.8;
+      }
     </style>
   </head>
   <body>
@@ -42,6 +85,17 @@
         <p id="details-description"></p>
         <h3>Input fields</h3>
         <ul id="details-inputs"></ul>
+        <form id="execution-form" hidden>
+          <h3>Execute</h3>
+          <div id="form-fields"></div>
+          <p id="form-status" class="muted"></p>
+          <button id="execute-button" type="submit">Ausführen</button>
+        </form>
+        <section id="execution-result" hidden>
+          <h3>Ergebnis</h3>
+          <p id="result-status"></p>
+          <div id="result-content" class="result-box"></div>
+        </section>
         <h3>Examples</h3>
         <ul id="details-examples"></ul>
         <p id="details-usage-hint" class="muted"></p>
@@ -57,7 +111,24 @@
       const detailsInputsEl = document.getElementById("details-inputs");
       const detailsExamplesEl = document.getElementById("details-examples");
       const detailsUsageHintEl = document.getElementById("details-usage-hint");
+      const executionFormEl = document.getElementById("execution-form");
+      const formFieldsEl = document.getElementById("form-fields");
+      const formStatusEl = document.getElementById("form-status");
+      const executeButtonEl = document.getElementById("execute-button");
+      const executionResultEl = document.getElementById("execution-result");
+      const resultStatusEl = document.getElementById("result-status");
+      const resultContentEl = document.getElementById("result-content");
+
       const parentOrigin = document.referrer ? new URL(document.referrer).origin : "*";
+
+      const state = {
+        selectedCalculationId: null,
+        details: null,
+        formValues: {},
+        fieldErrors: {},
+        isSubmitting: false,
+        executionResult: null,
+      };
 
       function applyHostInsets(hostContext) {
         if (!hostContext || typeof hostContext !== "object") return;
@@ -71,12 +142,8 @@
         if (typeof insets.left === "number") docStyle.setProperty("--host-inset-left", `${insets.left}px`);
       }
 
-      function requestCalculationDetails(calculationId) {
-        if (!calculationId) return;
-        const payload = {
-          toolName: "get_calculation_details",
-          arguments: { calculation_id: calculationId }
-        };
+      function postToolCall(toolName, args) {
+        const payload = { toolName, arguments: args };
         window.parent.postMessage(
           {
             type: "tool-call-request",
@@ -85,11 +152,17 @@
             mcpUi: {
               version: BRIDGE_VERSION,
               type: "tool-call-request",
-              payload
-            }
+              payload,
+            },
           },
-          parentOrigin
+          parentOrigin,
         );
+      }
+
+      function requestCalculationDetails(calculationId) {
+        if (!calculationId) return;
+        state.selectedCalculationId = calculationId;
+        postToolCall("get_calculation_details", { calculation_id: calculationId });
       }
 
       function parseIncomingMessage(data) {
@@ -111,7 +184,7 @@
           return {
             toolName: bridgePayload.toolName ?? data.toolName ?? null,
             structuredContent: bridgePayload.structuredContent ?? data.structuredContent,
-            result: bridgePayload.result ?? data.result
+            result: bridgePayload.result ?? data.result,
           };
         }
 
@@ -119,7 +192,7 @@
         return {
           toolName: data.toolName ?? null,
           structuredContent: data.structuredContent,
-          result: data.result
+          result: data.result,
         };
       }
 
@@ -138,8 +211,323 @@
         statusEl.textContent = `${calculations.length} calculation(s) loaded.`;
       }
 
+      function buildFieldDisplayDescription(field) {
+        const required = field.required ? "required" : "optional";
+        return `${field.name ?? "unknown"} (${field.field_type ?? "unknown"}, ${required})${
+          field.description ? ` — ${field.description}` : ""
+        }`;
+      }
+
+      function createValueDisplay(value) {
+        if (Array.isArray(value)) {
+          const ul = document.createElement("ul");
+          value.forEach((item) => {
+            const li = document.createElement("li");
+            li.textContent = typeof item === "object" ? JSON.stringify(item) : String(item);
+            ul.appendChild(li);
+          });
+          return ul;
+        }
+
+        if (value && typeof value === "object") {
+          const nested = document.createElement("dl");
+          Object.entries(value).forEach(([key, nestedValue]) => {
+            const dt = document.createElement("dt");
+            dt.textContent = key;
+            const dd = document.createElement("dd");
+            dd.appendChild(createValueDisplay(nestedValue));
+            nested.appendChild(dt);
+            nested.appendChild(dd);
+          });
+          return nested;
+        }
+
+        const span = document.createElement("span");
+        span.textContent = value === null ? "null" : String(value);
+        return span;
+      }
+
+      function renderExecutionResult(responsePayload) {
+        executionResultEl.hidden = false;
+        resultContentEl.innerHTML = "";
+        const ok = Boolean(responsePayload?.ok);
+        resultStatusEl.className = ok ? "status-success" : "status-error";
+        resultStatusEl.textContent = ok ? "Berechnung erfolgreich." : "Berechnung fehlgeschlagen.";
+
+        if (ok) {
+          const dl = document.createElement("dl");
+          const calcIdDt = document.createElement("dt");
+          calcIdDt.textContent = "calculation_id";
+          const calcIdDd = document.createElement("dd");
+          calcIdDd.textContent = responsePayload.calculation_id ?? state.details?.id ?? "unknown";
+          dl.appendChild(calcIdDt);
+          dl.appendChild(calcIdDd);
+
+          const resultDt = document.createElement("dt");
+          resultDt.textContent = "result";
+          const resultDd = document.createElement("dd");
+          resultDd.appendChild(createValueDisplay(responsePayload.result));
+          dl.appendChild(resultDt);
+          dl.appendChild(resultDd);
+          resultContentEl.appendChild(dl);
+          return;
+        }
+
+        const error = responsePayload?.error ?? {};
+        const message = document.createElement("p");
+        message.textContent = error.message ?? "Unbekannter Fehler";
+        resultContentEl.appendChild(message);
+
+        const details = Array.isArray(error.details) ? error.details : [];
+        if (details.length > 0) {
+          const ul = document.createElement("ul");
+          details.forEach((detail) => {
+            const li = document.createElement("li");
+            const field = detail.field ? `${detail.field}: ` : "";
+            li.textContent = `${field}${detail.message ?? detail.code ?? "Validation error"}`;
+            ul.appendChild(li);
+          });
+          resultContentEl.appendChild(ul);
+        }
+      }
+
+      function coerceByField(field, rawValue) {
+        if (rawValue === "" || rawValue === null || rawValue === undefined) {
+          return { hasValue: false, value: null };
+        }
+
+        if (field.allowed_values && field.allowed_values.length > 0) {
+          return { hasValue: true, value: rawValue };
+        }
+
+        if (field.field_type === "number") {
+          const value = Number(rawValue);
+          if (!Number.isFinite(value)) return { error: "Bitte eine gültige Zahl eingeben." };
+          return { hasValue: true, value };
+        }
+
+        if (field.field_type === "integer") {
+          const value = Number(rawValue);
+          if (!Number.isInteger(value)) return { error: "Bitte eine gültige Ganzzahl eingeben." };
+          return { hasValue: true, value };
+        }
+
+        if (field.field_type === "boolean") {
+          return { hasValue: true, value: rawValue === true || rawValue === "true" };
+        }
+
+        if (field.field_type === "number_list") {
+          const numbers = String(rawValue)
+            .split(/[\n,;]/)
+            .map((item) => item.trim())
+            .filter((item) => item.length > 0)
+            .map((item) => Number(item));
+          if (numbers.length === 0 || numbers.some((value) => !Number.isFinite(value))) {
+            return { error: "Bitte eine Liste gültiger Zahlen eingeben (z. B. 1, 2, 3)." };
+          }
+          return { hasValue: true, value: numbers };
+        }
+
+        return { hasValue: true, value: rawValue };
+      }
+
+      function validateAndBuildInput(fields) {
+        const input = {};
+        const errors = {};
+
+        fields.forEach((field) => {
+          const rawValue = state.formValues[field.name];
+          const parsed = coerceByField(field, rawValue);
+
+          if (parsed.error) {
+            errors[field.name] = parsed.error;
+            return;
+          }
+
+          if (!parsed.hasValue) {
+            if (field.required) {
+              errors[field.name] = "Dieses Feld ist erforderlich.";
+            }
+            return;
+          }
+
+          const value = parsed.value;
+          if (typeof value === "number") {
+            if (typeof field.min_value === "number" && value < field.min_value) {
+              errors[field.name] = `Wert muss >= ${field.min_value} sein.`;
+              return;
+            }
+            if (typeof field.max_value === "number" && value > field.max_value) {
+              errors[field.name] = `Wert muss <= ${field.max_value} sein.`;
+              return;
+            }
+          }
+
+          if (Array.isArray(field.allowed_values) && field.allowed_values.length > 0 && !field.allowed_values.includes(value)) {
+            errors[field.name] = "Bitte einen erlaubten Wert auswählen.";
+            return;
+          }
+
+          input[field.name] = value;
+        });
+
+        return { input, errors };
+      }
+
+      function onFieldChange(fieldName, value) {
+        state.formValues[fieldName] = value;
+      }
+
+      function buildInputElement(field) {
+        const inputId = `input-${field.name}`;
+        const hasEnum = Array.isArray(field.allowed_values) && field.allowed_values.length > 0;
+
+        if (hasEnum) {
+          const select = document.createElement("select");
+          select.id = inputId;
+          select.name = field.name;
+          if (!field.required) {
+            const emptyOption = document.createElement("option");
+            emptyOption.value = "";
+            emptyOption.textContent = "—";
+            select.appendChild(emptyOption);
+          }
+          field.allowed_values.forEach((allowed) => {
+            const option = document.createElement("option");
+            option.value = String(allowed);
+            option.textContent = String(allowed);
+            if (state.formValues[field.name] === undefined && field.required) {
+              state.formValues[field.name] = String(field.allowed_values[0]);
+            }
+            select.appendChild(option);
+          });
+          select.value = state.formValues[field.name] ?? "";
+          select.disabled = state.isSubmitting;
+          select.addEventListener("change", (event) => onFieldChange(field.name, event.target.value));
+          return select;
+        }
+
+        if (field.field_type === "boolean") {
+          const select = document.createElement("select");
+          select.id = inputId;
+          select.name = field.name;
+          const emptyOption = document.createElement("option");
+          emptyOption.value = "";
+          emptyOption.textContent = field.required ? "Bitte wählen" : "—";
+          select.appendChild(emptyOption);
+          ["true", "false"].forEach((value) => {
+            const option = document.createElement("option");
+            option.value = value;
+            option.textContent = value;
+            select.appendChild(option);
+          });
+          select.value = state.formValues[field.name] ?? "";
+          select.disabled = state.isSubmitting;
+          select.addEventListener("change", (event) => onFieldChange(field.name, event.target.value));
+          return select;
+        }
+
+        if (field.field_type === "number_list") {
+          const textarea = document.createElement("textarea");
+          textarea.id = inputId;
+          textarea.name = field.name;
+          textarea.placeholder = "1, 2, 3";
+          textarea.rows = 3;
+          textarea.value = state.formValues[field.name] ?? "";
+          textarea.disabled = state.isSubmitting;
+          textarea.addEventListener("input", (event) => onFieldChange(field.name, event.target.value));
+          return textarea;
+        }
+
+        const input = document.createElement("input");
+        input.id = inputId;
+        input.name = field.name;
+        if (field.field_type === "integer") {
+          input.type = "number";
+          input.step = "1";
+        } else if (field.field_type === "number") {
+          input.type = "number";
+          input.step = "any";
+        } else {
+          input.type = "text";
+        }
+
+        if (typeof field.min_value === "number") input.min = String(field.min_value);
+        if (typeof field.max_value === "number") input.max = String(field.max_value);
+        input.placeholder = field.description ?? "";
+        input.value = state.formValues[field.name] ?? "";
+        input.disabled = state.isSubmitting;
+        input.addEventListener("input", (event) => onFieldChange(field.name, event.target.value));
+        return input;
+      }
+
+      function renderExecutionForm(details) {
+        const fields = Array.isArray(details?.input_fields) ? details.input_fields : [];
+        executionFormEl.hidden = fields.length === 0;
+        formFieldsEl.innerHTML = "";
+        formStatusEl.textContent = "";
+
+        fields.forEach((field) => {
+          const wrapper = document.createElement("div");
+          wrapper.className = "field";
+
+          const label = document.createElement("label");
+          label.htmlFor = `input-${field.name}`;
+          label.textContent = field.required ? `${field.name} *` : field.name;
+          wrapper.appendChild(label);
+
+          const input = buildInputElement(field);
+          wrapper.appendChild(input);
+
+          const metaParts = [];
+          if (field.field_type) metaParts.push(`Typ: ${field.field_type}`);
+          if (typeof field.min_value === "number") metaParts.push(`Min: ${field.min_value}`);
+          if (typeof field.max_value === "number") metaParts.push(`Max: ${field.max_value}`);
+          if (metaParts.length > 0) {
+            const meta = document.createElement("p");
+            meta.className = "inline-meta";
+            meta.textContent = metaParts.join(" · ");
+            wrapper.appendChild(meta);
+          }
+
+          if (field.description) {
+            const help = document.createElement("p");
+            help.className = "field-help muted";
+            help.textContent = field.description;
+            wrapper.appendChild(help);
+          }
+
+          if (state.fieldErrors[field.name]) {
+            const error = document.createElement("p");
+            error.className = "field-error";
+            error.textContent = state.fieldErrors[field.name];
+            wrapper.appendChild(error);
+          }
+
+          formFieldsEl.appendChild(wrapper);
+        });
+
+        executeButtonEl.disabled = state.isSubmitting;
+        formFieldsEl.querySelectorAll("input,select,textarea").forEach((el) => {
+          el.disabled = state.isSubmitting;
+        });
+      }
+
+      function resetExecutionState() {
+        state.formValues = {};
+        state.fieldErrors = {};
+        state.executionResult = null;
+        state.isSubmitting = false;
+        executionResultEl.hidden = true;
+        resultStatusEl.textContent = "";
+        resultContentEl.innerHTML = "";
+      }
+
       function renderDetails(payload) {
         const details = payload ?? {};
+        state.details = details;
+        resetExecutionState();
+
         detailsEl.hidden = false;
         detailsNameEl.textContent = `${details.id ?? "unknown"} — ${details.name ?? ""}`;
         detailsDescriptionEl.textContent = details.description ?? "";
@@ -148,10 +536,7 @@
         detailsInputsEl.innerHTML = "";
         (details.input_fields ?? []).forEach((field) => {
           const li = document.createElement("li");
-          const required = field.required ? "required" : "optional";
-          li.textContent = `${field.name ?? "unknown"} (${field.field_type ?? "unknown"}, ${required})${
-            field.description ? ` — ${field.description}` : ""
-          }`;
+          li.textContent = buildFieldDisplayDescription(field);
           detailsInputsEl.appendChild(li);
         });
 
@@ -161,19 +546,56 @@
           li.textContent = example.title ?? "Example";
           detailsExamplesEl.appendChild(li);
         });
+
+        renderExecutionForm(details);
       }
+
+      executionFormEl.addEventListener("submit", (event) => {
+        event.preventDefault();
+        if (!state.details || !state.details.id || state.isSubmitting) return;
+
+        const fields = Array.isArray(state.details.input_fields) ? state.details.input_fields : [];
+        const { input, errors } = validateAndBuildInput(fields);
+        state.fieldErrors = errors;
+        if (Object.keys(errors).length > 0) {
+          formStatusEl.className = "status-error";
+          formStatusEl.textContent = "Bitte Eingabefehler korrigieren.";
+          renderExecutionForm(state.details);
+          return;
+        }
+
+        state.isSubmitting = true;
+        formStatusEl.className = "muted";
+        formStatusEl.textContent = "Berechnung wird ausgeführt…";
+        renderExecutionForm(state.details);
+        postToolCall("execute_calculation", {
+          calculation_id: state.details.id,
+          input,
+        });
+      });
 
       window.addEventListener("message", (event) => {
         if (event.source !== window.parent) return;
         if (parentOrigin !== "*" && event.origin !== parentOrigin) return;
         const parsed = parseIncomingMessage(event.data);
         if (!parsed) return;
+
         const structured = parsed.structuredContent ?? parsed.result ?? {};
         const isDetailsShape = structured && typeof structured === "object" && "input_fields" in structured;
+
+        if (parsed.toolName === "execute_calculation") {
+          state.isSubmitting = false;
+          formStatusEl.textContent = "";
+          renderExecutionForm(state.details ?? {});
+          renderExecutionResult(structured);
+          return;
+        }
+
         if (parsed.toolName === "get_calculation_details" || isDetailsShape) {
           renderDetails(structured);
           return;
         }
+
         renderCalculations(structured);
       });
     </script>
