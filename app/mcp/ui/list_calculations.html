@@ -39,7 +39,12 @@
       <section id="details" hidden>
         <h2>Calculation details</h2>
         <p id="details-name" class="muted"></p>
-        <pre id="details-json"></pre>
+        <p id="details-description"></p>
+        <h3>Input fields</h3>
+        <ul id="details-inputs"></ul>
+        <h3>Examples</h3>
+        <ul id="details-examples"></ul>
+        <p id="details-usage-hint" class="muted"></p>
       </section>
     </main>
     <script>
@@ -48,7 +53,10 @@
       const listEl = document.getElementById("calculation-list");
       const detailsEl = document.getElementById("details");
       const detailsNameEl = document.getElementById("details-name");
-      const detailsJsonEl = document.getElementById("details-json");
+      const detailsDescriptionEl = document.getElementById("details-description");
+      const detailsInputsEl = document.getElementById("details-inputs");
+      const detailsExamplesEl = document.getElementById("details-examples");
+      const detailsUsageHintEl = document.getElementById("details-usage-hint");
       const parentOrigin = document.referrer ? new URL(document.referrer).origin : "*";
 
       function applyHostInsets(hostContext) {
@@ -134,7 +142,25 @@
         const details = payload ?? {};
         detailsEl.hidden = false;
         detailsNameEl.textContent = `${details.id ?? "unknown"} — ${details.name ?? ""}`;
-        detailsJsonEl.textContent = JSON.stringify(details, null, 2);
+        detailsDescriptionEl.textContent = details.description ?? "";
+        detailsUsageHintEl.textContent = details.llm_usage_hint ? `Hint: ${details.llm_usage_hint}` : "";
+
+        detailsInputsEl.innerHTML = "";
+        (details.input_fields ?? []).forEach((field) => {
+          const li = document.createElement("li");
+          const required = field.required ? "required" : "optional";
+          li.textContent = `${field.name ?? "unknown"} (${field.field_type ?? "unknown"}, ${required})${
+            field.description ? ` — ${field.description}` : ""
+          }`;
+          detailsInputsEl.appendChild(li);
+        });
+
+        detailsExamplesEl.innerHTML = "";
+        (details.examples ?? []).forEach((example) => {
+          const li = document.createElement("li");
+          li.textContent = example.title ?? "Example";
+          detailsExamplesEl.appendChild(li);
+        });
       }
 
       window.addEventListener("message", (event) => {
@@ -143,7 +169,8 @@
         const parsed = parseIncomingMessage(event.data);
         if (!parsed) return;
         const structured = parsed.structuredContent ?? parsed.result ?? {};
-        if (parsed.toolName === "get_calculation_details") {
+        const isDetailsShape = structured && typeof structured === "object" && "input_fields" in structured;
+        if (parsed.toolName === "get_calculation_details" || isDetailsShape) {
           renderDetails(structured);
           return;
         }
