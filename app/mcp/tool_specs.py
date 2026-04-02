@@ -89,7 +89,10 @@ TOOL_SPECS: tuple[MCPToolSpec, ...] = (
     ),
     MCPToolSpec(
         name="list_calculations",
-        description="List all available named calculations with IDs, descriptions and LLM usage hints.",
+        description=(
+            "Primary entrypoint for the calculations app UI. "
+            "Lists available named calculations with IDs, descriptions and usage hints."
+        ),
         input_schema={
             "type": "object",
             "title": "ListCalculationsInput",
@@ -138,7 +141,7 @@ TOOL_SPECS: tuple[MCPToolSpec, ...] = (
     MCPToolSpec(
         name="get_calculation_details",
         description=(
-            "Get metadata, input field requirements and examples for a specific calculation by calculation_id."
+            "UI helper: load metadata, input requirements and examples for a specific calculation_id."
         ),
         input_schema={
             "type": "object",
@@ -168,7 +171,7 @@ TOOL_SPECS: tuple[MCPToolSpec, ...] = (
         meta={
             "ui": {
                 "resourceUri": "ui://calculations/list",
-                "visibility": ["model", "app"],
+                "visibility": ["app"],
             }
         },
     ),
@@ -212,8 +215,7 @@ TOOL_SPECS: tuple[MCPToolSpec, ...] = (
     MCPToolSpec(
         name="execute_calculation",
         description=(
-            "Execute a named calculation with structured input values. "
-            "Use get_calculation_details first to discover required fields and constraints."
+            "UI helper: execute a named calculation with structured input values."
         ),
         input_schema={
             "type": "object",
@@ -248,7 +250,7 @@ TOOL_SPECS: tuple[MCPToolSpec, ...] = (
         meta={
             "ui": {
                 "resourceUri": "ui://calculations/list",
-                "visibility": ["model", "app"],
+                "visibility": ["app"],
             }
         },
     ),

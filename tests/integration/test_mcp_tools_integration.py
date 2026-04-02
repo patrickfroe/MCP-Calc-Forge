@@ -37,13 +37,13 @@ def test_mcp_server_registers_all_four_tools() -> None:
         "ui": {"resourceUri": "ui://calculations/list", "visibility": ["model", "app"]}
     }
     assert by_name["get_calculation_details"].meta == {
-        "ui": {"resourceUri": "ui://calculations/list", "visibility": ["model", "app"]}
+        "ui": {"resourceUri": "ui://calculations/list", "visibility": ["app"]}
     }
     assert by_name["ui_get_calculation_preview"].meta == {
         "ui": {"resourceUri": "ui://calculations/list", "visibility": ["app"]}
     }
     assert by_name["execute_calculation"].meta == {
-        "ui": {"resourceUri": "ui://calculations/list", "visibility": ["model", "app"]}
+        "ui": {"resourceUri": "ui://calculations/list", "visibility": ["app"]}
     }
     assert by_name["execute_calculation"].output_schema["properties"]["calculation_id"]["type"] == "string"
     assert "ui://calculations/list" in resources_by_uri
@@ -69,7 +69,7 @@ def test_list_calculations_and_get_details_end_to_end() -> None:
     assert details_payload["_meta"]["ui"]["resourceUri"] == "ui://calculations/list"
     assert details_payload["content"][0]["type"] == "text"
     assert "loan_annuity_payment" in details_payload["content"][0]["text"]
-    assert "Eingabefelder" in details_payload["content"][0]["text"]
+    assert "eingebettete UI" in details_payload["content"][0]["text"]
 
 
 def test_list_calculations_progressive_enhancement_keeps_legacy_result_contract() -> None:
@@ -89,6 +89,8 @@ def test_execute_calculation_and_expression_end_to_end() -> None:
     )
     assert calc_payload["ok"] is True
     assert calc_payload["result"]["converted_amount"] == 108
+    assert calc_payload["structuredContent"]["ok"] is True
+    assert calc_payload["content"][0]["type"] == "text"
 
     expr_payload = calculate_expression_tool("(2 + 3) * 5")
     assert expr_payload["ok"] is True
@@ -117,6 +119,7 @@ def test_tools_return_structured_errors() -> None:
     )
     assert invalid_calc_payload["ok"] is False
     assert invalid_calc_payload["error"]["code"] == "VALIDATION_ERROR"
+    assert invalid_calc_payload["content"][0]["type"] == "text"
 
     invalid_expr_payload = calculate_expression_tool("__import__('os')")
     assert invalid_expr_payload["ok"] is False
