@@ -33,6 +33,8 @@ def test_ui_resource_loader_returns_html_document() -> None:
     assert "Calculations" in html
     assert "tool-call-request" in html
     assert "get_calculation_details" in html
+    assert "execute_calculation" in html
+    assert "execution-form" in html
     assert "safe-area-inset-top" in html or "--host-inset-top" in html
 
 

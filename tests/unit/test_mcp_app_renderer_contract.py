@@ -103,3 +103,5 @@ def test_app_renderer_contract_tools_resources_and_tool_results_are_coherent() -
         assert "Calculations" in html
         assert "tool-call-request" in html
         assert "get_calculation_details" in html
+        assert "execute_calculation" in html
+        assert "execution-form" in html
